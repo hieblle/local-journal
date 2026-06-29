@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- App Sandbox keeps the app isolated; the journal stays on-device. -->
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+	<!-- Required so the sandboxed app may open an outbound connection to the
+	     local Ollama server (http://localhost:11434). No inbound server is run. -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+	<!-- Allow the user to pick an export location later (see Roadmap.md). -->
+	<key>com.apple.security.files.user-selected.read-write</key>
+	<true/>
+</dict>
+</plist>
