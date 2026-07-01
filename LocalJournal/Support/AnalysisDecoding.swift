@@ -20,7 +20,7 @@ struct FullAnalysisResult: Decodable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        if let s = try? c.decodeIfPresent(String.self, forKey: .summary), let s {
+        if let s = try? c.decode(String.self, forKey: .summary) {
             summary = s.trimmingCharacters(in: .whitespacesAndNewlines)
         }
         feelings = Self.stringArray(c, .feelings)
@@ -45,13 +45,13 @@ struct FullAnalysisResult: Decodable {
     }
 
     private static func stringArray(_ c: KeyedDecodingContainer<CodingKeys>, _ key: CodingKeys) -> [String] {
-        if let array = try? c.decodeIfPresent([String].self, forKey: key) {
-            return (array ?? [])
+        if let array = try? c.decode([String].self, forKey: key) {
+            return array
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .filter { !$0.isEmpty }
         }
         // Some models return a single comma-separated string instead of a list.
-        if let single = try? c.decodeIfPresent(String.self, forKey: key), let single {
+        if let single = try? c.decode(String.self, forKey: key) {
             return single.split(separator: ",")
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .filter { !$0.isEmpty }
@@ -60,10 +60,10 @@ struct FullAnalysisResult: Decodable {
     }
 
     private static func lenientDouble(_ c: KeyedDecodingContainer<CodingKeys>, _ key: CodingKeys) -> Double {
-        if let d = try? c.decodeIfPresent(Double.self, forKey: key), let d {
+        if let d = try? c.decode(Double.self, forKey: key) {
             return min(max(d, -1), 1)
         }
-        if let s = try? c.decodeIfPresent(String.self, forKey: key), let s,
+        if let s = try? c.decode(String.self, forKey: key),
            let d = Double(s.replacingOccurrences(of: ",", with: ".")) {
             return min(max(d, -1), 1)
         }
