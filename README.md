@@ -33,7 +33,7 @@ Geplante Features (u. a. die **Suche**) stehen in [`Roadmap.md`](./Roadmap.md).
 
   ```sh
   ollama serve            # startet den lokalen Server auf :11434
-  ollama pull gemma3:4b   # kleines, lokales Gemma-Modell laden
+  ollama pull gemma4:e4b  # lokales Gemma-Modell laden
   ```
 
 ## Öffnen & Starten
@@ -71,10 +71,10 @@ LocalJournal/
 
 ## Pragmatische Annahmen (dokumentiert)
 
-- **Modellname:** Der Brief nennt „Gemma 4 4B“. Auf Ollama gibt es aktuell kein
-  „Gemma 4“; als kleines lokales Gemma wird daher `gemma3:4b` als Standard
-  verwendet. Der Name ist in den **Einstellungen frei konfigurierbar**
-  (`AppSettings.defaultModelName`).
+- **Modellname:** „Gemma 4 4B“ entspricht auf Ollama dem Tag `gemma4:e4b`, das
+  daher als Standard verwendet wird. Der Name ist in den **Einstellungen frei
+  konfigurierbar** (`AppSettings.defaultModelName`); mit „Modelle laden“ kannst
+  du die lokal vorhandenen Tags direkt auswählen.
 - **Strukturierte Ausgaben:** Für maximale Kompatibilität werden Analysen mit
   `format: "json"` plus präzisen Prompt-Vorgaben erzeugt und tolerant geparst
   (siehe `AnalysisDecoding.swift`). Echte JSON-Schema-Constraints stehen auf der

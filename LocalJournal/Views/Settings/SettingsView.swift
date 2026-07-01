@@ -44,7 +44,7 @@ private struct SettingsForm: View {
 
                 LabeledContent("Modell") {
                     HStack {
-                        TextField("gemma3:4b", text: $settings.modelName)
+                        TextField("gemma4:e4b", text: $settings.modelName)
                             .textFieldStyle(.roundedBorder)
                             .frame(maxWidth: 180)
                         if !availableModels.isEmpty {
@@ -77,7 +77,7 @@ private struct SettingsForm: View {
                     OllamaStatusBadge(isReachable: monitor.isReachable, isChecking: monitor.isChecking)
                 }
 
-                Text("Standardmodell ist `gemma3:4b` (kleines, lokales Gemma). Passe es an das Modell an, das du mit `ollama pull` geladen hast.")
+                Text("Standardmodell ist `gemma4:e4b` (lokales Gemma). Passe es an das Modell an, das du mit `ollama pull` geladen hast (`ollama list`).")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

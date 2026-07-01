@@ -46,11 +46,10 @@ final class AppSettings {
 
     static let defaultBaseURL = "http://localhost:11434"
 
-    /// Assumption: "Gemma 4 4B" from the brief is interpreted as the current
-    /// small local Gemma, which on Ollama is `gemma3:4b`. This is fully
-    /// configurable in Settings — change it to whatever you have pulled
-    /// (e.g. `gemma2:2b`, `gemma3:12b`). Documented in README.md.
-    static let defaultModelName = "gemma3:4b"
+    /// Default local Gemma model tag. Matches "Gemma 4 4B" from the brief:
+    /// on Ollama that model is `gemma4:e4b`. Fully configurable in Settings —
+    /// change it to whatever you have pulled (`ollama list`).
+    static let defaultModelName = "gemma4:e4b"
 
     /// Fetch the existing settings record or create one on first launch.
     @MainActor
