@@ -25,6 +25,9 @@ Netzwerkverbindung geht an deinen lokalen Ollama-Server.
   gewichteten Kanten verbunden (Co-Occurrence ohne KI + typisierte Relationen mit
   KI, per Few-shot gesteuert). Browsebar im Tab „Wissensgraph".
   Details: [`docs/knowledge-graph.md`](./docs/knowledge-graph.md).
+- **Merken** – eine fokussierte Seite mit **offenen Vorhaben** (abhakbar),
+  **Learnings** und **„Wichtig zum Merken"** (angepinnte Punkte ⭐︎ plus
+  automatisch eingeblendete Ziele und wiederkehrende Learnings/Muster).
 - **Analyse-Seite** – einfache SwiftUI-Charts (Wörter/Tag, Häufigkeit, Stimmung
   über Zeit, häufigste Themen/Personen/Gefühle) plus Entitätslisten.
 - **Einstellungen** – Ollama-Adresse & Modell, Auto-Analyse, Timer-Defaults,

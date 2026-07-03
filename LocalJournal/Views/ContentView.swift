@@ -5,6 +5,7 @@ import Combine
 /// Sidebar sections of the app.
 enum AppSection: String, CaseIterable, Identifiable {
     case dashboard
+    case memory
     case write
     case entries
     case prompts
@@ -17,6 +18,7 @@ enum AppSection: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .dashboard: return "Dashboard"
+        case .memory:    return "Merken"
         case .write:     return "Schreiben"
         case .entries:   return "Einträge"
         case .prompts:   return "Prompts"
@@ -29,6 +31,7 @@ enum AppSection: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .dashboard: return "square.grid.2x2"
+        case .memory:    return "star"
         case .write:     return "square.and.pencil"
         case .entries:   return "book.closed"
         case .prompts:   return "lightbulb"
@@ -85,6 +88,7 @@ struct ContentView: View {
     private func detail(for section: AppSection) -> some View {
         switch section {
         case .dashboard: DashboardView(goToSection: { selection = $0 })
+        case .memory:    MemoryBoardView()
         case .write:     JournalEditorView()
         case .entries:   EntryListView()
         case .prompts:   PromptLibraryView()

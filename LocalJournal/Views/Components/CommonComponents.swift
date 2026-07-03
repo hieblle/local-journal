@@ -6,6 +6,24 @@ extension Color {
     static var cardSurface: Color { Color(nsColor: .controlBackgroundColor) }
 }
 
+extension NodeKind {
+    /// Accent colour used consistently across the graph and memory views.
+    var tint: Color {
+        switch self {
+        case .person:   return .purple
+        case .topic:    return .blue
+        case .feeling:  return .pink
+        case .idea:     return .orange
+        case .learning: return .green
+        case .task:     return .teal
+        case .goal:     return .mint
+        case .event:    return .indigo
+        case .place:    return .brown
+        case .pattern:  return .gray
+        }
+    }
+}
+
 /// A single dashboard metric (e.g. "Streak — 4 Tage").
 struct StatCard: View {
     let title: String

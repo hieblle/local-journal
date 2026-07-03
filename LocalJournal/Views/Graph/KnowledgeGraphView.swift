@@ -125,20 +125,7 @@ struct KnowledgeGraphView: View {
         try? context.save()
     }
 
-    private func color(for kind: NodeKind) -> Color {
-        switch kind {
-        case .person:   return .purple
-        case .topic:    return .blue
-        case .feeling:  return .pink
-        case .idea:     return .orange
-        case .learning: return .green
-        case .task:     return .teal
-        case .goal:     return .mint
-        case .event:    return .indigo
-        case .place:    return .brown
-        case .pattern:  return .gray
-        }
-    }
+    private func color(for kind: NodeKind) -> Color { kind.tint }
 }
 
 /// One expandable node row: header (name, kind, mention count) revealing its

@@ -129,6 +129,10 @@ final class KnowledgeNode {
     /// For `.task` nodes: has the intention been marked done?
     var isResolved: Bool
 
+    /// User-curated: kept prominently on the "Merken" board. Default keeps
+    /// automatic migration clean for stores created before pinning existed.
+    var isPinned: Bool = false
+
     /// Entries that reference this node (inverse declared on `JournalEntry.nodes`).
     var entries: [JournalEntry]
 
