@@ -20,8 +20,15 @@ final class EntryAnalysis {
     /// Raw person names detected (also promoted to `PersonEntity`).
     var people: [String]
 
-    /// Key insights / learnings the entry surfaces.
+    /// Key insights / learnings the entry surfaces (also promoted to `.learning` nodes).
     var keyInsights: [String]
+
+    /// New ideas that surfaced in the entry (also promoted to `.idea` nodes).
+    /// Default keeps automatic migration clean for stores created before graphs.
+    var ideas: [String] = []
+
+    /// Concrete intentions / to-dos the person set (also promoted to `.task` nodes).
+    var tasks: [String] = []
 
     /// Recurring patterns the model noticed in this entry.
     var patterns: [String]
@@ -47,6 +54,8 @@ final class EntryAnalysis {
         topics: [String] = [],
         people: [String] = [],
         keyInsights: [String] = [],
+        ideas: [String] = [],
+        tasks: [String] = [],
         patterns: [String] = [],
         comparisonWithLastWeek: String = "",
         moodScore: Double = 0,
@@ -58,6 +67,8 @@ final class EntryAnalysis {
         self.topics = topics
         self.people = people
         self.keyInsights = keyInsights
+        self.ideas = ideas
+        self.tasks = tasks
         self.patterns = patterns
         self.comparisonWithLastWeek = comparisonWithLastWeek
         self.moodScore = moodScore

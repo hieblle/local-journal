@@ -16,12 +16,31 @@ Die Suche ist wichtig, wird aber erst nach einer stabilen Version 1 umgesetzt.
 - [ ] Filter nach KI-Insights (z. B. nur Einträge mit erkannten Mustern)
 - [ ] Kombinierte Filter (Zeitraum + Person + Stimmung)
 
+## Wissensgraph & RAG
+
+Stufe 1 (Graph-first) ist umgesetzt: Knoten (Personen, Themen, Gefühle, Ideen,
+Learnings, Vorhaben) + typisierte, gewichtete Kanten, festes Relations-Vokabular
+und Normalisierung. Siehe [`docs/knowledge-graph.md`](./docs/knowledge-graph.md).
+
+- [x] Property-Graph aus Analyse-Ergebnissen (Co-Occurrence ohne KI + typisierte
+      Relationen mit KI)
+- [x] Browsebarer „Wissensgraph"-Tab (Knoten, Verbindungen, verknüpfte Einträge)
+- [ ] **Embeddings pro Eintrag** (on-device via `NLContextualEmbedding` oder
+      Ollama-Embeddings) als Basis für semantische Suche
+- [ ] **„Frag dein Journal"** (RAG): Retrieval + fundierte, belegte Antworten
+- [ ] **GraphRAG**: Retrieval, das den Graphen traversiert, + Themen-Summaries
+      über Zeit
+- [ ] Force-directed Visualisierung des Graphen
+- [ ] Weitere Knotentypen (z. B. `place`, `event`)
+- [ ] Volle Kanten-Provenienz pro Eintrag (saubere Re-Analyse ohne Doppelzählung)
+
 ## Daten & Entitäten
 
 - [ ] Manuelles Nachbearbeiten erkannter Entitäten
       (Personen/Topics umbenennen, zusammenführen, entfernen, Aliase)
 - [ ] Entitäten manuell mit Einträgen verknüpfen / Verknüpfungen lösen
 - [ ] Personen-/Topic-Detailseiten mit eigenem Verlauf
+- [ ] Wissensgraph und `PersonEntity`/`TopicEntity` zu einer Quelle vereinheitlichen
 
 ## Export & Backup
 

@@ -123,6 +123,26 @@ struct EntryDetailView: View {
             }
         }
 
+        if !analysis.ideas.isEmpty {
+            SectionCard(title: "Ideen", systemImage: "lightbulb") {
+                ForEach(analysis.ideas, id: \.self) { idea in
+                    Label(idea, systemImage: "lightbulb")
+                        .font(.callout)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+        }
+
+        if !analysis.tasks.isEmpty {
+            SectionCard(title: "Vorhaben", systemImage: "checklist") {
+                ForEach(analysis.tasks, id: \.self) { task in
+                    Label(task, systemImage: "circle")
+                        .font(.callout)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+        }
+
         if !analysis.patterns.isEmpty {
             SectionCard(title: "Muster & Trends", systemImage: "waveform.path.ecg") {
                 ForEach(analysis.patterns, id: \.self) { pattern in

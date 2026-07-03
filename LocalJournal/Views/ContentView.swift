@@ -8,6 +8,7 @@ enum AppSection: String, CaseIterable, Identifiable {
     case write
     case entries
     case prompts
+    case graph
     case analysis
     case settings
 
@@ -19,6 +20,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .write:     return "Schreiben"
         case .entries:   return "Einträge"
         case .prompts:   return "Prompts"
+        case .graph:     return "Wissensgraph"
         case .analysis:  return "Analyse"
         case .settings:  return "Einstellungen"
         }
@@ -30,6 +32,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .write:     return "square.and.pencil"
         case .entries:   return "book.closed"
         case .prompts:   return "lightbulb"
+        case .graph:     return "point.3.connected.trianglepath.dotted"
         case .analysis:  return "chart.bar.xaxis"
         case .settings:  return "gearshape"
         }
@@ -85,6 +88,7 @@ struct ContentView: View {
         case .write:     JournalEditorView()
         case .entries:   EntryListView()
         case .prompts:   PromptLibraryView()
+        case .graph:     KnowledgeGraphView()
         case .analysis:  AnalysisView()
         case .settings:  SettingsView()
         }

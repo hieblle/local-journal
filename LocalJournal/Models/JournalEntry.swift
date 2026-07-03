@@ -69,6 +69,12 @@ final class JournalEntry {
     @Relationship(inverse: \TopicEntity.entries)
     var topics: [TopicEntity]
 
+    /// Knowledge-graph nodes referenced by this entry (people, topics, feelings,
+    /// ideas, learnings, tasks). Inverse declared here; `KnowledgeNode.entries`
+    /// stays a plain stored array.
+    @Relationship(inverse: \KnowledgeNode.entries)
+    var nodes: [KnowledgeNode]
+
     init(
         id: UUID = UUID(),
         title: String = "",
@@ -87,6 +93,7 @@ final class JournalEntry {
         self.analysisStatusRaw = AnalysisStatus.notStarted.rawValue
         self.people = []
         self.topics = []
+        self.nodes = []
     }
 
     /// Recompute the denormalised word count from the current text.

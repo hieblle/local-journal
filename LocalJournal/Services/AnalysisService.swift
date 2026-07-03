@@ -133,6 +133,8 @@ final class AnalysisService {
         analysis.topics = result.topics
         analysis.people = result.people
         analysis.keyInsights = result.keyInsights
+        analysis.ideas = result.ideas
+        analysis.tasks = result.tasks
         analysis.patterns = result.patterns
         analysis.moodScore = result.moodScore
         analysis.modelName = modelName
@@ -140,6 +142,9 @@ final class AnalysisService {
 
         linkPeople(result.people, to: entry)
         linkTopics(result.topics, to: entry)
+
+        // Fold this entry into the knowledge graph (nodes, co-occurrence + typed edges).
+        KnowledgeGraphService(context: context).ingest(result, into: entry)
     }
 
     /// Resolve detected names to shared `PersonEntity` records (creating new ones

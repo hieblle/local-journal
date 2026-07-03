@@ -43,14 +43,25 @@ enum LLMPromptTemplates {
           "topics": ["zentrale Themen, kurze Substantive, z. B. Arbeit, Stress"],
           "people": ["konkret erwähnte Personen, nur Namen"],
           "keyInsights": ["wichtige Erkenntnisse oder Learnings aus dem Eintrag"],
+          "ideas": ["neue Ideen oder Einfälle, die im Eintrag auftauchen"],
+          "tasks": ["konkrete Vorhaben/To-dos, die sich die Person vornimmt"],
           "patterns": ["mögliche wiederkehrende Muster, die der Eintrag andeutet"],
-          "moodScore": 0.0
+          "moodScore": 0.0,
+          "relationships": [
+            {"source": "Name/Begriff", "sourceType": "person|topic|feeling|idea|learning|task",
+             "relation": "relatedTo", "target": "Name/Begriff",
+             "targetType": "person|topic|feeling|idea|learning|task"}
+          ]
         }
 
         Regeln:
         - "moodScore" ist eine Zahl zwischen -1.0 (sehr negativ) und 1.0 (sehr positiv).
-        - Erfinde keine Personen oder Themen, die nicht im Text vorkommen.
+        - Erfinde keine Personen, Themen, Ideen oder Vorhaben, die nicht im Text vorkommen.
         - Halte die Listen kurz (max. 6 Einträge) und ohne Dopplungen.
+        - "relationships" beschreibt Verbindungen zwischen den oben genannten Begriffen.
+          "relation" MUSS exakt einer dieser Werte sein: \(RelationVocabulary.promptList()).
+          Nutze nur Begriffe, die auch in den Listen oben vorkommen. Wenn unklar, nutze "relatedTo".
+          Gib höchstens 8 Beziehungen an; bei keiner sinnvollen Beziehung: [].
 
         Titel: \(entryTitle.isEmpty ? "(kein Titel)" : entryTitle)
         Eintrag:

@@ -16,9 +16,14 @@ Netzwerkverbindung geht an deinen lokalen Ollama-Server.
 - **Journal-Prompt-Bibliothek** – Reflexionsfragen als Schreibimpulse: sichtbar,
   beim Schreiben auswählbar, manuell ergänzbar und per Ollama generierbar.
 - **KI-Analyse nach jedem Eintrag** – Zusammenfassung, Themen, Gefühle, Personen,
-  Erkenntnisse, Muster und 7-Tage-Vergleich; strukturiert lokal gespeichert.
+  Erkenntnisse, Ideen, Vorhaben, Muster und 7-Tage-Vergleich; strukturiert lokal
+  gespeichert.
 - **Entitäten** – `PersonEntity` und `TopicEntity` werden einmal angelegt und bei
   erneuter Erwähnung automatisch mit neuen Einträgen verknüpft.
+- **Wissensgraph** – Personen, Themen, Gefühle, **Ideen, Learnings und Vorhaben**
+  werden als Knoten mit typisierten, gewichteten Kanten verbunden (Co-Occurrence
+  ohne KI + typisierte Relationen mit KI). Browsebar im Tab „Wissensgraph".
+  Details: [`docs/knowledge-graph.md`](./docs/knowledge-graph.md).
 - **Analyse-Seite** – einfache SwiftUI-Charts (Wörter/Tag, Häufigkeit, Stimmung
   über Zeit, häufigste Themen/Personen/Gefühle) plus Entitätslisten.
 - **Einstellungen** – Ollama-Adresse & Modell, Auto-Analyse, Timer-Defaults,
@@ -55,12 +60,15 @@ Klare Trennung von UI, Datenmodell und LLM-Logik:
 ```
 LocalJournal/
 ├─ Models/        SwiftData-Modelle (JournalEntry, EntryAnalysis, JournalPrompt,
-│                 PersonEntity, TopicEntity, WeeklySummary, AppSettings)
+│                 PersonEntity, TopicEntity, WeeklySummary, AppSettings,
+│                 KnowledgeNode, KnowledgeEdge)
 ├─ Services/      OllamaService (Netzwerk) · AnalysisService (Pipeline)
 ├─ Prompts/       LLMPromptTemplates.swift  (technische Prompts für Ollama)
 │                 JournalPromptSeedData.swift (Schreibimpulse für Nutzer:innen)
+├─ Graph/         Wissensgraph: RelationVocabulary (festes Vokabular),
+│                 NodeNormalization (Dedup), KnowledgeGraphService (Aufbau)
 ├─ Support/       Statistik, JSON-Parsing, Seeding
-└─ Views/         Dashboard · Editor · Prompts · Entries · Analysis · Settings
+└─ Views/         Dashboard · Editor · Prompts · Graph · Entries · Analysis · Settings
 ```
 
 **Zwei Arten von Prompts** – bewusst getrennt:

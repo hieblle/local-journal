@@ -9,11 +9,16 @@ struct FullAnalysisResult: Decodable {
     var topics: [String] = []
     var people: [String] = []
     var keyInsights: [String] = []
+    var ideas: [String] = []
+    var tasks: [String] = []
     var patterns: [String] = []
     var moodScore: Double = 0
 
+    /// Typed relations between concepts, used to build knowledge-graph edges.
+    var relationships: [RelationTriple] = []
+
     enum CodingKeys: String, CodingKey {
-        case summary, feelings, topics, people, keyInsights, patterns, moodScore
+        case summary, feelings, topics, people, keyInsights, ideas, tasks, patterns, moodScore, relationships
     }
 
     init() {}
@@ -27,8 +32,12 @@ struct FullAnalysisResult: Decodable {
         topics = Self.stringArray(c, .topics)
         people = Self.stringArray(c, .people)
         keyInsights = Self.stringArray(c, .keyInsights)
+        ideas = Self.stringArray(c, .ideas)
+        tasks = Self.stringArray(c, .tasks)
         patterns = Self.stringArray(c, .patterns)
         moodScore = Self.lenientDouble(c, .moodScore)
+        // Relations are best-effort: a malformed list must not fail the whole parse.
+        relationships = (try? c.decode([RelationTriple].self, forKey: .relationships)) ?? []
     }
 
     /// Parse a raw model response that should contain a single JSON object.
@@ -68,6 +77,30 @@ struct FullAnalysisResult: Decodable {
             return min(max(d, -1), 1)
         }
         return 0
+    }
+}
+
+/// One `(source) —relation→ (target)` statement from the model, with a type hint
+/// for each endpoint. Tolerant: any missing field decodes to "" so a single
+/// malformed triple never breaks the surrounding list.
+struct RelationTriple: Decodable {
+    var source: String = ""
+    var sourceType: String = ""
+    var relation: String = ""
+    var target: String = ""
+    var targetType: String = ""
+
+    enum CodingKeys: String, CodingKey {
+        case source, sourceType, relation, target, targetType
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        source = (try? c.decode(String.self, forKey: .source)) ?? ""
+        sourceType = (try? c.decode(String.self, forKey: .sourceType)) ?? ""
+        relation = (try? c.decode(String.self, forKey: .relation)) ?? ""
+        target = (try? c.decode(String.self, forKey: .target)) ?? ""
+        targetType = (try? c.decode(String.self, forKey: .targetType)) ?? ""
     }
 }
 
