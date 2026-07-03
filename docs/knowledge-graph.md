@@ -24,16 +24,27 @@ Ein Knoten ist ein wiedererkennbares Konzept. Kurzlabels vs. satzartige Knoten:
 | `person`    | Label      | „Anna"                                      | `people`                   |
 | `topic`     | Label      | „Arbeit", „Schlaf"                          | `topics`                   |
 | `feeling`   | Label      | „überfordert", „ruhig"                      | `feelings`                 |
+| `event`     | Label      | „Meeting mit Anna", „Lauf"                  | `events`                   |
+| `place`     | Label      | „Büro", „zuhause"                           | `places`                   |
 | `idea`      | Aussage    | „Newsletter monatlich statt wöchentlich"    | `ideas`                    |
 | `learning`  | Aussage    | „Ich arbeite morgens fokussierter"          | `keyInsights`              |
 | `task`      | Aussage    | „Diese Woche Zahnarzttermin machen"         | `tasks`                    |
+| `goal`      | Aussage    | „fitter werden"                             | `goals`                    |
+| `pattern`   | Aussage    | „reagiert unter Zeitdruck gereizt"          | `patterns`                 |
 
+- **`task` vs. `goal`:** ein `task` ist ein kurzfristiges To-do, ein `goal` ein
+  längerfristiger Vorsatz. Tasks hängen typischerweise per `partOf` an einem Ziel.
+- **`pattern`-Knoten** heben die vom Modell erkannten wiederkehrenden Muster von
+  reinem Text (nur am `EntryAnalysis`) in den Graphen, wo sie über
+  Co-Occurrence mit Themen/Gefühlen sichtbar verknüpft werden — das
+  eintragsübergreifend wertvollste Signal.
 - **De-Duplizierung** über `nodeKey = "<kind>#<normalisierterName>"`
   (`@Attribute(.unique)`). Gleiche Erwähnung ⇒ derselbe Knoten; `mentionCount`
   ergibt sich aus den verknüpften Einträgen.
 - `task`-Knoten haben `isResolved` (im Wissensgraph abhakbar).
-- Das Set ist bewusst klein gehalten. Weitere Kinds (z. B. `place`, `event`)
-  sind eine einfache Erweiterung des Enums.
+- Satzartige Knoten (`idea`, `learning`, `task`, `goal`, `pattern`) deduplizieren
+  nur bei exakter Übereinstimmung — nahe Varianten bleiben getrennt (bewusst, für
+  v1 akzeptiert; semantisches Zusammenführen kommt mit Embeddings).
 
 ## Kanten (`KnowledgeEdge`) – mit und ohne KI
 
@@ -65,15 +76,21 @@ Unbekanntes fällt auf `relatedTo` zurück (nichts geht verloren).
 | `coOccursWith` | kommt gemeinsam vor mit       | ja          | beliebig ↔ beliebig (ohne KI) |
 | `relatedTo`    | hängt zusammen mit / Fallback | ja          | beliebig ↔ beliebig           |
 | `about`        | handelt von                   | nein        | idea/learning/task → topic/person |
-| `involves`     | bezieht ein                   | nein        | task → person                 |
-| `feelsAbout`   | Gefühl gegenüber              | nein        | feeling → topic/person        |
-| `causes`       | führt zu                      | nein        | beliebig → feeling            |
-| `partOf`       | gehört zu                     | nein        | topic → topic                 |
+| `involves`     | bezieht ein                   | nein        | event/task → person           |
+| `feelsAbout`   | Gefühl gegenüber              | nein        | feeling → topic/person/event  |
+| `causes`       | führt zu                      | nein        | event/topic → feeling         |
+| `partOf`       | gehört zu                     | nein        | task → goal, topic → topic    |
 | `dependsOn`    | hängt ab von                  | nein        | task → task/person/topic      |
 
 Neue Relationen werden **nur** hier ergänzt. Die für das Modell erlaubten Werte
 werden per `RelationVocabulary.promptList()` direkt in den Analyse-Prompt
 injiziert.
+
+**Few-shot gegen `relatedTo`-Übernutzung:** Der `fullAnalysis`-Prompt enthält ein
+kleines, klar als „nicht ausgeben" markiertes Beispiel, das eine typisierte
+Relationsliste zeigt (`involves`, `causes`, `partOf`). Es steuert das Modell weg
+vom generischen Fallback hin zu spezifischen Relationen. Die zehn erlaubten
+Knotentypen für `sourceType`/`targetType` sind im Prompt aufgezählt.
 
 ## Normalisierung (`NodeNormalization.swift`)
 

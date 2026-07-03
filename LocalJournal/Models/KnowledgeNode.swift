@@ -14,6 +14,10 @@ enum NodeKind: String, Codable, CaseIterable, Identifiable {
     case idea
     case learning
     case task
+    case goal
+    case event
+    case place
+    case pattern
 
     var id: String { rawValue }
 
@@ -25,6 +29,10 @@ enum NodeKind: String, Codable, CaseIterable, Identifiable {
         case .idea:     return "Idee"
         case .learning: return "Learning"
         case .task:     return "Vorhaben"
+        case .goal:     return "Ziel"
+        case .event:    return "Ereignis"
+        case .place:    return "Ort"
+        case .pattern:  return "Muster"
         }
     }
 
@@ -36,6 +44,10 @@ enum NodeKind: String, Codable, CaseIterable, Identifiable {
         case .idea:     return "Ideen"
         case .learning: return "Learnings"
         case .task:     return "Vorhaben"
+        case .goal:     return "Ziele"
+        case .event:    return "Ereignisse"
+        case .place:    return "Orte"
+        case .pattern:  return "Muster"
         }
     }
 
@@ -47,6 +59,10 @@ enum NodeKind: String, Codable, CaseIterable, Identifiable {
         case .idea:     return "lightbulb"
         case .learning: return "graduationcap"
         case .task:     return "checklist"
+        case .goal:     return "target"
+        case .event:    return "calendar"
+        case .place:    return "mappin.and.ellipse"
+        case .pattern:  return "repeat"
         }
     }
 
@@ -54,7 +70,7 @@ enum NodeKind: String, Codable, CaseIterable, Identifiable {
     /// are the ones worth tracking as intentions / captured thoughts.
     var isStatement: Bool {
         switch self {
-        case .idea, .learning, .task: return true
+        case .idea, .learning, .task, .goal, .pattern: return true
         default: return false
         }
     }
@@ -74,6 +90,14 @@ enum NodeKind: String, Codable, CaseIterable, Identifiable {
             return .learning
         case "task", "tasks", "todo", "to-do", "aufgabe", "aufgaben", "vorhaben", "intention":
             return .task
+        case "goal", "goals", "ziel", "ziele", "objective", "vorsatz":
+            return .goal
+        case "event", "events", "ereignis", "ereignisse", "activity", "aktivität", "aktivitäten":
+            return .event
+        case "place", "places", "location", "locations", "ort", "orte":
+            return .place
+        case "pattern", "patterns", "muster", "trend", "trends":
+            return .pattern
         default:
             return .topic
         }

@@ -25,13 +25,18 @@ und Normalisierung. Siehe [`docs/knowledge-graph.md`](./docs/knowledge-graph.md)
 - [x] Property-Graph aus Analyse-Ergebnissen (Co-Occurrence ohne KI + typisierte
       Relationen mit KI)
 - [x] Browsebarer „Wissensgraph"-Tab (Knoten, Verbindungen, verknüpfte Einträge)
+- [x] Knotentypen: Person, Thema, Gefühl, Ereignis, Ort, Idee, Learning,
+      Vorhaben, Ziel, Muster
+- [x] Few-shot-Beispiel im Analyse-Prompt gegen `relatedTo`-Übernutzung
 - [ ] **Embeddings pro Eintrag** (on-device via `NLContextualEmbedding` oder
       Ollama-Embeddings) als Basis für semantische Suche
 - [ ] **„Frag dein Journal"** (RAG): Retrieval + fundierte, belegte Antworten
 - [ ] **GraphRAG**: Retrieval, das den Graphen traversiert, + Themen-Summaries
       über Zeit
 - [ ] Force-directed Visualisierung des Graphen
-- [ ] Weitere Knotentypen (z. B. `place`, `event`)
+- [ ] Muster auch aus dem 7-Tage-Vergleich in den Graph übernehmen (aktuell nur
+      die Einzeleintrags-Patterns)
+- [ ] Semantisches Zusammenführen naher Satz-Knoten (Ideen/Ziele/Muster)
 - [ ] Volle Kanten-Provenienz pro Eintrag (saubere Re-Analyse ohne Doppelzählung)
 
 ## Daten & Entitäten

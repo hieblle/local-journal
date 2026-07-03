@@ -105,7 +105,11 @@ struct EntryDetailView: View {
                 signal("Gefühle", analysis.feelings, image: "heart", tint: .pink)
                 signal("Themen", analysis.topics, image: "tag", tint: .blue)
                 signal("Personen", analysis.people, image: "person", tint: .purple)
-                if analysis.feelings.isEmpty && analysis.topics.isEmpty && analysis.people.isEmpty {
+                signal("Ereignisse", analysis.events, image: "calendar", tint: .indigo)
+                signal("Orte", analysis.places, image: "mappin.and.ellipse", tint: .brown)
+                signal("Ziele", analysis.goals, image: "target", tint: .mint)
+                if analysis.feelings.isEmpty && analysis.topics.isEmpty && analysis.people.isEmpty
+                    && analysis.events.isEmpty && analysis.places.isEmpty && analysis.goals.isEmpty {
                     Text("Keine Signale erkannt.")
                         .font(.callout)
                         .foregroundStyle(.tertiary)

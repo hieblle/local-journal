@@ -20,9 +20,10 @@ Netzwerkverbindung geht an deinen lokalen Ollama-Server.
   gespeichert.
 - **Entitäten** – `PersonEntity` und `TopicEntity` werden einmal angelegt und bei
   erneuter Erwähnung automatisch mit neuen Einträgen verknüpft.
-- **Wissensgraph** – Personen, Themen, Gefühle, **Ideen, Learnings und Vorhaben**
-  werden als Knoten mit typisierten, gewichteten Kanten verbunden (Co-Occurrence
-  ohne KI + typisierte Relationen mit KI). Browsebar im Tab „Wissensgraph".
+- **Wissensgraph** – Personen, Themen, Gefühle, Ereignisse, Orte, **Ideen,
+  Learnings, Vorhaben, Ziele und Muster** werden als Knoten mit typisierten,
+  gewichteten Kanten verbunden (Co-Occurrence ohne KI + typisierte Relationen mit
+  KI, per Few-shot gesteuert). Browsebar im Tab „Wissensgraph".
   Details: [`docs/knowledge-graph.md`](./docs/knowledge-graph.md).
 - **Analyse-Seite** – einfache SwiftUI-Charts (Wörter/Tag, Häufigkeit, Stimmung
   über Zeit, häufigste Themen/Personen/Gefühle) plus Entitätslisten.

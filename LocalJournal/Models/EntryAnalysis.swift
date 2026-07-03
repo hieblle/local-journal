@@ -30,7 +30,16 @@ final class EntryAnalysis {
     /// Concrete intentions / to-dos the person set (also promoted to `.task` nodes).
     var tasks: [String] = []
 
-    /// Recurring patterns the model noticed in this entry.
+    /// Longer-term goals the entry touches (also promoted to `.goal` nodes).
+    var goals: [String] = []
+
+    /// Concrete events / activities mentioned (also promoted to `.event` nodes).
+    var events: [String] = []
+
+    /// Places mentioned (also promoted to `.place` nodes).
+    var places: [String] = []
+
+    /// Recurring patterns the model noticed in this entry (also promoted to `.pattern` nodes).
     var patterns: [String]
 
     /// Free-text comparison of this entry against the last 7 days.
@@ -56,6 +65,9 @@ final class EntryAnalysis {
         keyInsights: [String] = [],
         ideas: [String] = [],
         tasks: [String] = [],
+        goals: [String] = [],
+        events: [String] = [],
+        places: [String] = [],
         patterns: [String] = [],
         comparisonWithLastWeek: String = "",
         moodScore: Double = 0,
@@ -69,6 +81,9 @@ final class EntryAnalysis {
         self.keyInsights = keyInsights
         self.ideas = ideas
         self.tasks = tasks
+        self.goals = goals
+        self.events = events
+        self.places = places
         self.patterns = patterns
         self.comparisonWithLastWeek = comparisonWithLastWeek
         self.moodScore = moodScore

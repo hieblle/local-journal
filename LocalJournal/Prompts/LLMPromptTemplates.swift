@@ -42,26 +42,43 @@ enum LLMPromptTemplates {
           "feelings": ["erkannte Gefühle/Stimmungen, kurze Begriffe"],
           "topics": ["zentrale Themen, kurze Substantive, z. B. Arbeit, Stress"],
           "people": ["konkret erwähnte Personen, nur Namen"],
+          "events": ["konkrete Ereignisse/Aktivitäten, z. B. Meeting, Lauf"],
+          "places": ["konkret erwähnte Orte, z. B. Büro, zuhause"],
           "keyInsights": ["wichtige Erkenntnisse oder Learnings aus dem Eintrag"],
           "ideas": ["neue Ideen oder Einfälle, die im Eintrag auftauchen"],
           "tasks": ["konkrete Vorhaben/To-dos, die sich die Person vornimmt"],
+          "goals": ["längerfristige Ziele/Vorsätze, z. B. fitter werden"],
           "patterns": ["mögliche wiederkehrende Muster, die der Eintrag andeutet"],
           "moodScore": 0.0,
           "relationships": [
-            {"source": "Name/Begriff", "sourceType": "person|topic|feeling|idea|learning|task",
-             "relation": "relatedTo", "target": "Name/Begriff",
-             "targetType": "person|topic|feeling|idea|learning|task"}
+            {"source": "Name/Begriff", "sourceType": "<typ>",
+             "relation": "relatedTo", "target": "Name/Begriff", "targetType": "<typ>"}
           ]
         }
 
+        Erlaubte Typen für "sourceType"/"targetType":
+        person, topic, feeling, event, place, idea, learning, task, goal, pattern.
+
         Regeln:
         - "moodScore" ist eine Zahl zwischen -1.0 (sehr negativ) und 1.0 (sehr positiv).
-        - Erfinde keine Personen, Themen, Ideen oder Vorhaben, die nicht im Text vorkommen.
+        - Erfinde nichts, was nicht im Text vorkommt.
         - Halte die Listen kurz (max. 6 Einträge) und ohne Dopplungen.
         - "relationships" beschreibt Verbindungen zwischen den oben genannten Begriffen.
           "relation" MUSS exakt einer dieser Werte sein: \(RelationVocabulary.promptList()).
-          Nutze nur Begriffe, die auch in den Listen oben vorkommen. Wenn unklar, nutze "relatedTo".
+          Wähle die spezifischste passende Relation; nutze "relatedTo" nur, wenn keine andere passt.
+          Nutze nur Begriffe, die auch in den Listen oben vorkommen.
           Gib höchstens 8 Beziehungen an; bei keiner sinnvollen Beziehung: [].
+
+        Beispiel NUR zur Orientierung für Struktur und Relationen – NICHT ausgeben,
+        Inhalte NICHT übernehmen:
+        Text: "Nach dem Meeting mit Anna war ich gestresst. Ich will diese Woche
+        joggen gehen, um endlich fitter zu werden."
+        Passende relationships:
+        [
+          {"source": "Meeting mit Anna", "sourceType": "event", "relation": "involves", "target": "Anna", "targetType": "person"},
+          {"source": "Meeting mit Anna", "sourceType": "event", "relation": "causes", "target": "gestresst", "targetType": "feeling"},
+          {"source": "joggen gehen", "sourceType": "task", "relation": "partOf", "target": "fitter werden", "targetType": "goal"}
+        ]
 
         Titel: \(entryTitle.isEmpty ? "(kein Titel)" : entryTitle)
         Eintrag:

@@ -135,6 +135,9 @@ final class AnalysisService {
         analysis.keyInsights = result.keyInsights
         analysis.ideas = result.ideas
         analysis.tasks = result.tasks
+        analysis.goals = result.goals
+        analysis.events = result.events
+        analysis.places = result.places
         analysis.patterns = result.patterns
         analysis.moodScore = result.moodScore
         analysis.modelName = modelName

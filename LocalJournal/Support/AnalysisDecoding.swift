@@ -11,6 +11,9 @@ struct FullAnalysisResult: Decodable {
     var keyInsights: [String] = []
     var ideas: [String] = []
     var tasks: [String] = []
+    var goals: [String] = []
+    var events: [String] = []
+    var places: [String] = []
     var patterns: [String] = []
     var moodScore: Double = 0
 
@@ -18,7 +21,8 @@ struct FullAnalysisResult: Decodable {
     var relationships: [RelationTriple] = []
 
     enum CodingKeys: String, CodingKey {
-        case summary, feelings, topics, people, keyInsights, ideas, tasks, patterns, moodScore, relationships
+        case summary, feelings, topics, people, keyInsights, ideas, tasks
+        case goals, events, places, patterns, moodScore, relationships
     }
 
     init() {}
@@ -34,6 +38,9 @@ struct FullAnalysisResult: Decodable {
         keyInsights = Self.stringArray(c, .keyInsights)
         ideas = Self.stringArray(c, .ideas)
         tasks = Self.stringArray(c, .tasks)
+        goals = Self.stringArray(c, .goals)
+        events = Self.stringArray(c, .events)
+        places = Self.stringArray(c, .places)
         patterns = Self.stringArray(c, .patterns)
         moodScore = Self.lenientDouble(c, .moodScore)
         // Relations are best-effort: a malformed list must not fail the whole parse.

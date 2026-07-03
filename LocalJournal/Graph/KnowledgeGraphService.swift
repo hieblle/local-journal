@@ -45,6 +45,10 @@ struct KnowledgeGraphService {
         add(result.ideas, kind: .idea)
         add(result.keyInsights, kind: .learning)   // insights == learnings
         add(result.tasks, kind: .task)
+        add(result.goals, kind: .goal)
+        add(result.events, kind: .event)
+        add(result.places, kind: .place)
+        add(result.patterns, kind: .pattern)        // cross-entry patterns as nodes
 
         // (Re)link the entry to exactly the nodes it references now. Assigning the
         // whole array keeps re-analysis idempotent for node membership.
