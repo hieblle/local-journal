@@ -23,7 +23,9 @@ Netzwerkverbindung geht an deinen lokalen Ollama-Server.
 - **Wissensgraph** – Personen, Themen, Gefühle, Ereignisse, Orte, **Ideen,
   Learnings, Vorhaben, Ziele und Muster** werden als Knoten mit typisierten,
   gewichteten Kanten verbunden (Co-Occurrence ohne KI + typisierte Relationen mit
-  KI, per Few-shot gesteuert). Browsebar im Tab „Wissensgraph".
+  KI, per Few-shot gesteuert). Im Tab „Wissensgraph" wahlweise als **Liste** oder
+  als native, Obsidian-artige **Graph-Ansicht** (Force-Layout, Zoom/Pan, Filter,
+  lokaler Fokus – rein SwiftUI, keine Abhängigkeit).
   Details: [`docs/knowledge-graph.md`](./docs/knowledge-graph.md).
 - **Merken** – eine fokussierte Seite mit **offenen Vorhaben** (abhakbar),
   **Learnings** und **„Wichtig zum Merken"** (angepinnte Punkte ⭐︎ plus

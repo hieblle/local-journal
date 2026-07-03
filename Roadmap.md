@@ -33,7 +33,10 @@ und Normalisierung. Siehe [`docs/knowledge-graph.md`](./docs/knowledge-graph.md)
 - [ ] **„Frag dein Journal"** (RAG): Retrieval + fundierte, belegte Antworten
 - [ ] **GraphRAG**: Retrieval, das den Graphen traversiert, + Themen-Summaries
       über Zeit
-- [ ] Force-directed Visualisierung des Graphen
+- [x] Force-directed Visualisierung des Graphen (native SwiftUI-Canvas,
+      Liste/Graph-Umschalter, Zoom/Pan, Filter, lokaler Fokus)
+- [ ] Navigation von einem Graph-Knoten direkt zu seinen Einträgen
+- [ ] Asynchrones Layout / Barnes-Hut für sehr große Graphen (>~300 Knoten)
 - [ ] Muster auch aus dem 7-Tage-Vergleich in den Graph übernehmen (aktuell nur
       die Einzeleintrags-Patterns)
 - [ ] Semantisches Zusammenführen naher Satz-Knoten (Ideen/Ziele/Muster)

@@ -126,8 +126,14 @@ Robustheit bleibt erhalten: Ist Ollama offline, wird der Eintrag wie gehabt als
 - **`@Attribute(.unique)`** ist bewusst genutzt. Für späteren iCloud/CloudKit-Sync
   müsste das entfallen (CloudKit erlaubt keine Unique-Constraints) – dann Dedup
   rein im Code. Siehe Sync-Planung.
-- **Visualisierung:** vorerst eine ruhige, inspizierbare Liste
-  (`KnowledgeGraphView`); ein force-directed Canvas kann folgen.
+- **Visualisierung:** zwei Modi im Tab „Wissensgraph" (`KnowledgeGraphView`):
+  - **Liste** – ruhig und inspizierbar (Knoten, Verbindungen, verknüpfte Einträge).
+  - **Graph** – native, Obsidian-artige Node-Link-Ansicht (`GraphCanvasView` +
+    `GraphLayoutEngine`): Force-Layout **einmalig** berechnet und dann statisch
+    gezeichnet (kein Dauer-Simulationsaufwand), mit Zoom/Pan/Knoten-Ziehen,
+    Filtern (Typ, Mindestgewicht, „nur getypte Kanten") und **lokalem Fokus**
+    (Knoten antippen → nur seine Nachbarschaft). Aus Performancegründen auf die
+    Top-`nodeCap` Knoten begrenzt. Rein SwiftUI, keine Abhängigkeit.
 
 ## Nächste Stufen (Roadmap)
 

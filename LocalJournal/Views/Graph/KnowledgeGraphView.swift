@@ -1,10 +1,10 @@
 import SwiftUI
 import SwiftData
 
-/// Browsable view of the on-device knowledge graph: concept nodes (people,
-/// topics, feelings, ideas, learnings, tasks) with their connections and the
-/// entries they came from. Deliberately a calm, inspectable list rather than a
-/// force-directed canvas — a visual layout can come later.
+/// The knowledge-graph tab. Two modes: a calm, inspectable **list** (nodes,
+/// connections, linked entries) and a native force-directed **graph** canvas
+/// (`GraphCanvasView`). The list is best for reading/acting; the graph is best
+/// for exploring clusters and central hubs.
 struct KnowledgeGraphView: View {
     @Environment(\.modelContext) private var context
 
@@ -12,6 +12,14 @@ struct KnowledgeGraphView: View {
     @Query private var edges: [KnowledgeEdge]
 
     @State private var selectedKind: NodeKind?
+    @State private var mode: GraphViewMode = .list
+
+    enum GraphViewMode: String, CaseIterable, Identifiable {
+        case list, graph
+        var id: String { rawValue }
+        var title: String { self == .list ? "Liste" : "Graph" }
+        var icon: String { self == .list ? "list.bullet" : "point.3.connected.trianglepath.dotted" }
+    }
 
     private var visibleNodes: [KnowledgeNode] {
         nodes
@@ -31,19 +39,44 @@ struct KnowledgeGraphView: View {
     }
 
     var body: some View {
-        ScrollView {
+        Group {
             if nodes.isEmpty {
-                EmptyHint(title: "Noch kein Wissensgraph",
-                          systemImage: "point.3.connected.trianglepath.dotted",
-                          message: "Sobald Einträge analysiert werden, entstehen hier automatisch Knoten (Themen, Personen, Ideen, Learnings, Vorhaben) und ihre Verbindungen.")
-                    .padding(40)
-            } else {
-                VStack(alignment: .leading, spacing: 20) {
-                    statsRow
-                    kindFilter
-                    nodeList
+                ScrollView {
+                    EmptyHint(title: "Noch kein Wissensgraph",
+                              systemImage: "point.3.connected.trianglepath.dotted",
+                              message: "Sobald Einträge analysiert werden, entstehen hier automatisch Knoten (Themen, Personen, Ideen, Learnings, Vorhaben) und ihre Verbindungen.")
+                        .padding(40)
                 }
-                .padding(20)
+            } else {
+                VStack(spacing: 0) {
+                    Picker("Ansicht", selection: $mode) {
+                        ForEach(GraphViewMode.allCases) { m in
+                            Label(m.title, systemImage: m.icon).tag(m)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelStyle(.titleAndIcon)
+                    .frame(maxWidth: 260)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                    .padding(.bottom, 8)
+
+                    Divider()
+
+                    switch mode {
+                    case .list:
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 20) {
+                                statsRow
+                                kindFilter
+                                nodeList
+                            }
+                            .padding(20)
+                        }
+                    case .graph:
+                        GraphCanvasView()
+                    }
+                }
             }
         }
         .navigationTitle("Wissensgraph")
