@@ -101,6 +101,7 @@ struct PromptLibraryView: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
         .navigationTitle("Reflexionsfragen")
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {

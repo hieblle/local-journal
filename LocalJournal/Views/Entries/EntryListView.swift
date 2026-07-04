@@ -23,6 +23,7 @@ struct EntryListView: View {
                     }
                     .onDelete(perform: delete)
                 }
+                .scrollContentBackground(.hidden)
             }
         }
         .navigationTitle("Einträge")

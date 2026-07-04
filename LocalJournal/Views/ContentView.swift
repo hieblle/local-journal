@@ -78,9 +78,11 @@ struct ContentView: View {
                                 // up AnalysisService.
                                 EntryDetailView(entry: entry, onStartWriting: startWriting)
                                     .environment(analysis)
+                                    .background(Color.appBackground)
                             }
                     }
                     .environment(analysis)
+                    .background(Color.appBackground)
                 }
             } else {
                 ProgressView()
@@ -106,7 +108,7 @@ struct ContentView: View {
     @ViewBuilder
     private func detail(for section: AppSection) -> some View {
         switch section {
-        case .dashboard: DashboardView(goToSection: { selection = $0 })
+        case .dashboard: DashboardView(goToSection: { selection = $0 }, onStartWriting: startWriting)
         case .memory:    MemoryBoardView()
         case .write:     JournalEditorView(initialPrompt: pendingPrompt,
                                            onConsumePrompt: { pendingPrompt = nil })

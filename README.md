@@ -9,8 +9,13 @@ Netzwerkverbindung geht an deinen lokalen Ollama-Server.
 
 ## Funktionen (Version 1)
 
-- **Dashboard** – Streak, Wörter diese Woche, Einträge/Wörter gesamt, letzte
-  Einträge, kurze KI-Zusammenfassungen, erkannte Gefühle/Themen/Personen/Insights.
+- **Dashboard** – ruhiges, redaktionelles Layout: eine erzählerische Headline,
+  ein **Resilience-Score** (0–100) mit Untermetriken (emotionale Stabilität,
+  Selbstwirksamkeit, Körper & Energie) samt Monatsveränderung, eine
+  **30-Tage-Stimmungskurve**, die gewohnten Statistik-Kacheln (Streak, Wörter …),
+  wiederkehrende Themen mit Häufigkeit und ein **Impuls für heute** zum
+  Direkt-Losschreiben. Der Resilience-Score wird lokal und deterministisch aus
+  der Analyse berechnet (siehe `Support/ResilienceScore.swift`).
 - **Editor** – Titel, Datum (schöner Kalender-Popover), Text, optionaler &
   einstellbarer Schreib-Timer. Einträge werden **immer zuerst lokal gespeichert**;
   die KI-Analyse läuft danach. Direkt im Editor lässt sich **mit einer

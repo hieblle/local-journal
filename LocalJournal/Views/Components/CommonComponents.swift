@@ -2,8 +2,9 @@ import SwiftUI
 import AppKit
 
 extension Color {
-    /// Subtle, dark-mode-aware surface used for cards and grouped content.
-    static var cardSurface: Color { Color(nsColor: .controlBackgroundColor) }
+    /// Warm, dark-mode-aware surface used for cards and grouped content
+    /// (near-white paper on the cream `appBackground`). See `Theme.swift`.
+    static let cardSurface = Color(lightHex: 0xFBFAF6, darkHex: 0x262420)
 }
 
 extension NodeKind {
@@ -110,15 +111,15 @@ struct StatCard: View {
                 .foregroundStyle(.secondary)
                 .labelStyle(.titleAndIcon)
             Text(value)
-                .font(.system(.title, design: .rounded).weight(.semibold))
+                .serif(28)
                 .foregroundStyle(.primary)
                 .contentTransition(.numericText())
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(Color.cardSurface, in: RoundedRectangle(cornerRadius: 12))
+        .background(Color.cardSurface, in: RoundedRectangle(cornerRadius: 14))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(tint.opacity(0.10))
         )
     }
