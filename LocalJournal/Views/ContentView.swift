@@ -73,7 +73,7 @@ struct ContentView: View {
                                 // do NOT reach navigationDestination content, so
                                 // EntryDetailView would otherwise crash looking
                                 // up AnalysisService.
-                                EntryDetailView(entry: entry)
+                                EntryDetailView(entry: entry, onStartWriting: startWriting)
                                     .environment(analysis)
                             }
                     }

@@ -8,6 +8,8 @@ import SwiftData
 /// while Ollama was offline).
 struct EntryDetailView: View {
     @Bindable var entry: JournalEntry
+    /// Start a fresh entry preloaded with a reflection question.
+    var onStartWriting: (String) -> Void = { _ in }
 
     @Environment(\.modelContext) private var context
     @Environment(AnalysisService.self) private var analysis
@@ -23,6 +25,12 @@ struct EntryDetailView: View {
     @State private var draftTitle = ""
     @State private var draftDate = Date.now
     @State private var draftText = ""
+
+    // Critical-reflection question generation.
+    @State private var reflectionQuestions: [String] = []
+    @State private var isGeneratingReflection = false
+    @State private var reflectionMessage: String?
+    @State private var savedQuestions: Set<String> = []
 
     private var draftWordCount: Int { JournalEntry.countWords(in: draftText) }
     private var canSaveEdits: Bool {
@@ -51,6 +59,7 @@ struct EntryDetailView: View {
                     } else {
                         analysisPlaceholder
                     }
+                    reflectionCard
                 }
             }
             .padding(20)
@@ -276,6 +285,82 @@ struct EntryDetailView: View {
         }
     }
 
+    // MARK: - Critical reflection
+
+    /// Generate critically reflective follow-up questions grounded in this entry;
+    /// each can be saved to the collection or used to start a new entry.
+    private var reflectionCard: some View {
+        SectionCard(title: "Kritische Reflexion", systemImage: "questionmark.bubble") {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Lass dir aus diesem Eintrag Fragen erzeugen, die zu ehrlicher, "
+                     + "kritischer Selbstreflexion anregen.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                ForEach(reflectionQuestions, id: \.self) { question in
+                    reflectionRow(question)
+                }
+
+                if let reflectionMessage {
+                    Text(reflectionMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Button {
+                    generateReflection()
+                } label: {
+                    if isGeneratingReflection {
+                        HStack(spacing: 8) {
+                            ProgressView().controlSize(.small)
+                            Text("Erzeuge Fragen …")
+                        }
+                    } else {
+                        Label(reflectionQuestions.isEmpty ? "Fragen generieren" : "Neue Fragen",
+                              systemImage: "sparkles")
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(isGeneratingReflection)
+            }
+        }
+    }
+
+    private func reflectionRow(_ question: String) -> some View {
+        let saved = savedQuestions.contains(question)
+        return VStack(alignment: .leading, spacing: 8) {
+            Text(question)
+                .font(.callout)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(spacing: 8) {
+                Button {
+                    onStartWriting(question)
+                } label: {
+                    Label("Schreiben", systemImage: "square.and.pencil")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+
+                Button {
+                    saveReflectionToLibrary(question)
+                } label: {
+                    Label(saved ? "In Sammlung" : "In Sammlung sichern",
+                          systemImage: saved ? "checkmark.circle.fill" : "plus.circle")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(saved)
+                .tint(saved ? .green : .accentColor)
+
+                Spacer()
+            }
+        }
+        .padding(10)
+        .background(Color.accentColor.opacity(0.06), in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.accentColor.opacity(0.12)))
+    }
+
     private var analysisPlaceholder: some View {
         SectionCard(title: "KI-Analyse", systemImage: "brain") {
             switch entry.analysisStatus {
@@ -382,6 +467,27 @@ struct EntryDetailView: View {
         let captured = entry
         let currentSettings = settings
         Task { @MainActor in await analysis.analyze(captured, settings: currentSettings) }
+    }
+
+    private func generateReflection() {
+        isGeneratingReflection = true
+        reflectionMessage = nil
+        let captured = entry
+        let currentSettings = settings
+        Task { @MainActor in
+            let questions = await analysis.reflectionPrompts(for: captured, count: 4, settings: currentSettings)
+            reflectionQuestions = questions
+            if questions.isEmpty {
+                reflectionMessage = "Keine Fragen erhalten. Läuft dein lokales Ollama-Modell?"
+            }
+            isGeneratingReflection = false
+        }
+    }
+
+    private func saveReflectionToLibrary(_ question: String) {
+        context.insert(JournalPrompt(text: question, category: "Kritische Reflexion", isAIGenerated: true))
+        try? context.save()
+        savedQuestions.insert(question)
     }
 
     private func formattedDuration(_ seconds: Int) -> String {

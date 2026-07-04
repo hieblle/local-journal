@@ -180,10 +180,10 @@ struct PromptLibraryView: View {
             generationMessage = "Keine Vorschläge erhalten. Läuft Ollama und gibt es schon analysierte Einträge?"
         } else {
             for text in suggestions {
-                context.insert(JournalPrompt(text: text, category: "KI-Vorschläge", isAIGenerated: true))
+                context.insert(JournalPrompt(text: text, category: "Kritische Reflexion", isAIGenerated: true))
             }
             save()
-            generationMessage = "\(suggestions.count) neue Vorschläge hinzugefügt."
+            generationMessage = "\(suggestions.count) neue Fragen aus deinen Einträgen hinzugefügt."
         }
         isGenerating = false
     }
@@ -279,7 +279,8 @@ private struct PromptEditorSheet: View {
     @State private var category: String
 
     private let categories = ["Allgemein", "Gefühle", "Muster", "Vermeidung",
-                              "Perspektive", "Beziehungen", "Energie & Fokus", "KI-Vorschläge"]
+                              "Perspektive", "Beziehungen", "Energie & Fokus",
+                              "Kritische Reflexion"]
 
     init(initialText: String,
          initialCategory: String,

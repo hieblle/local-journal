@@ -93,25 +93,77 @@ enum LLMPromptTemplates {
 
     // MARK: - Individual building blocks
 
-    /// Generate new journal reflection prompts from the user's recent themes.
+    /// Generate new, **critically reflective** journal prompts grounded in the
+    /// user's recent material (topics, patterns, feelings, goals, summaries).
     static func generateReflectionPrompts(recentTopics: [String],
+                                          recentPatterns: [String],
+                                          recentFeelings: [String],
+                                          recentGoals: [String],
                                           recentSummaries: [String],
                                           count: Int = 5) -> String {
         """
         \(systemPreamble)
 
-        Erzeuge \(count) neue, offene Reflexionsfragen für das Journaling, \
-        passend zu den bisherigen Themen der Person. Die Fragen sollen Reflexion \
-        vertiefen, Muster sichtbar machen und neue Perspektiven anbieten – \
-        niemals diagnostisch.
+        Erzeuge \(count) offene, **kritisch-reflexive** Journaling-Fragen, die \
+        konkret an das anknüpfen, was die Person zuletzt geschrieben hat. Die \
+        Fragen sollen zu ehrlicher Selbstreflexion anregen: blinde Flecken, \
+        unausgesprochene Annahmen, Widersprüche, Vermeidungen und wiederkehrende \
+        Muster behutsam sichtbar machen und neue Perspektiven eröffnen. Kritisch, \
+        aber wertschätzend – nie diagnostisch oder belehrend. Beziehe dich, wo \
+        möglich, auf die genannten Themen/Muster/Gefühle/Ziele. Jede Frage ist \
+        EINE offene Frage (kein Ja/Nein).
 
         Gib GENAU dieses JSON zurück:
         { "prompts": ["Frage 1", "Frage 2", "..."] }
 
-        Bisherige Themen: \(recentTopics.isEmpty ? "(noch keine)" : recentTopics.joined(separator: ", "))
+        Themen: \(csv(recentTopics))
+        Wiederkehrende Muster: \(csv(recentPatterns))
+        Gefühle: \(csv(recentFeelings))
+        Ziele/Vorhaben: \(csv(recentGoals))
         Letzte Zusammenfassungen:
         \(recentSummaries.isEmpty ? "(keine)" : recentSummaries.map { "- \($0)" }.joined(separator: "\n"))
         """
+    }
+
+    /// Generate critically reflective follow-up questions for **one specific
+    /// entry**, grounded in its text and detected signals.
+    static func reflectionPromptsForEntry(entryTitle: String,
+                                          entryText: String,
+                                          topics: [String],
+                                          patterns: [String],
+                                          feelings: [String],
+                                          goals: [String],
+                                          count: Int = 4) -> String {
+        """
+        \(systemPreamble)
+
+        Lies den folgenden Journaleintrag und erzeuge \(count) **kritisch-reflexive** \
+        Anschlussfragen NUR zu diesem Eintrag. Die Fragen sollen die Person zu einer \
+        tieferen, ehrlichen Auseinandersetzung mit dem Geschriebenen einladen: \
+        hinterfrage Annahmen, benenne mögliche blinde Flecken, Vermeidungen oder \
+        Widersprüche behutsam und öffne neue Perspektiven. Kritisch, aber \
+        wertschätzend – nie diagnostisch. Jede Frage ist EINE offene Frage \
+        (kein Ja/Nein) und knüpft konkret am Inhalt an.
+
+        Gib GENAU dieses JSON zurück:
+        { "prompts": ["Frage 1", "Frage 2", "..."] }
+
+        Erkannte Themen: \(csv(topics))
+        Erkannte Muster: \(csv(patterns))
+        Erkannte Gefühle: \(csv(feelings))
+        Ziele/Vorhaben: \(csv(goals))
+
+        Titel: \(entryTitle.isEmpty ? "(kein Titel)" : entryTitle)
+        Eintrag:
+        \"\"\"
+        \(entryText)
+        \"\"\"
+        """
+    }
+
+    /// Compact comma-separated list for prompt context, or a placeholder.
+    private static func csv(_ items: [String]) -> String {
+        items.isEmpty ? "(keine)" : items.joined(separator: ", ")
     }
 
     /// Summarise a single entry.

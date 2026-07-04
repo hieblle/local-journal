@@ -87,7 +87,8 @@ final class AnalysisService {
         return done
     }
 
-    /// Ask Gemma to propose new *journal* prompts based on recent themes.
+    /// Ask Gemma to propose new, **critically reflective** journal prompts based
+    /// on recent entries (topics, patterns, feelings, goals, summaries).
     /// Returns an empty array (never throws) so the UI can degrade gracefully.
     func generateJournalPrompts(count: Int = 5, settings: AppSettings) async -> [String] {
         let service = OllamaService(baseURL: settings.ollamaBaseURL, model: settings.modelName)
@@ -98,16 +99,46 @@ final class AnalysisService {
         )
         descriptor.fetchLimit = 10
         let recent = (try? context.fetch(descriptor)) ?? []
-        let topics = Array(Set(recent.flatMap { $0.analysis?.topics ?? [] })).prefix(12)
-        let summaries = recent.compactMap { $0.analysis?.summary }.filter { !$0.isEmpty }
+        let analyses = recent.compactMap { $0.analysis }
+        let topics = uniqueLimited(analyses.flatMap { $0.topics }, limit: 12)
+        let patterns = uniqueLimited(analyses.flatMap { $0.patterns }, limit: 8)
+        let feelings = uniqueLimited(analyses.flatMap { $0.feelings }, limit: 10)
+        let goals = uniqueLimited(analyses.flatMap { $0.goals }, limit: 8)
+        let summaries = analyses.compactMap { $0.summary }.filter { !$0.isEmpty }
 
         let prompt = LLMPromptTemplates.generateReflectionPrompts(
-            recentTopics: Array(topics),
+            recentTopics: topics,
+            recentPatterns: patterns,
+            recentFeelings: feelings,
+            recentGoals: goals,
             recentSummaries: summaries,
             count: count
         )
-        guard let raw = try? await service.generate(prompt: prompt) else { return [] }
+        return await decodePrompts(from: service, prompt: prompt)
+    }
 
+    /// Ask Gemma for **critically reflective follow-up questions for one entry**,
+    /// grounded in its text and detected signals. Empty array on any failure.
+    func reflectionPrompts(for entry: JournalEntry, count: Int = 4, settings: AppSettings) async -> [String] {
+        let service = OllamaService(baseURL: settings.ollamaBaseURL, model: settings.modelName)
+        guard await service.isReachable() else { return [] }
+
+        let analysis = entry.analysis
+        let prompt = LLMPromptTemplates.reflectionPromptsForEntry(
+            entryTitle: entry.title,
+            entryText: entry.text,
+            topics: analysis?.topics ?? [],
+            patterns: analysis?.patterns ?? [],
+            feelings: analysis?.feelings ?? [],
+            goals: analysis?.goals ?? [],
+            count: count
+        )
+        return await decodePrompts(from: service, prompt: prompt)
+    }
+
+    /// Shared decoder for the `{ "prompts": [...] }` shape.
+    private func decodePrompts(from service: OllamaService, prompt: String) async -> [String] {
+        guard let raw = try? await service.generate(prompt: prompt) else { return [] }
         let json = JSONText.extractObject(from: raw)
         guard let data = json.data(using: .utf8),
               let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -117,6 +148,19 @@ final class AnalysisService {
         return list
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
+    }
+
+    /// De-duplicate (case-insensitive, order-preserving) and cap a string list.
+    private func uniqueLimited(_ values: [String], limit: Int) -> [String] {
+        var seen = Set<String>()
+        var out: [String] = []
+        for value in values {
+            let key = value.lowercased()
+            guard !value.isEmpty, seen.insert(key).inserted else { continue }
+            out.append(value)
+            if out.count >= limit { break }
+        }
+        return out
     }
 
     // MARK: - Applying results

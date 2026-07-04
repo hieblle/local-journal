@@ -17,10 +17,15 @@ Netzwerkverbindung geht an deinen lokalen Ollama-Server.
   Reflexionsfrage starten**.
 - **Eintrag ansehen & bearbeiten** – jeder Eintrag öffnet eine Detailseite mit
   Text und der vollständigen KI-Analyse; per „Bearbeiten" lassen sich Titel,
-  Datum und Text ändern (die Analyse wird danach aktualisiert).
+  Datum und Text ändern (die Analyse wird danach aktualisiert). Ein Block
+  **„Kritische Reflexion"** erzeugt aus genau diesem Eintrag kritisch-reflexive
+  Anschlussfragen – jede lässt sich in die Sammlung übernehmen oder direkt als
+  neuer Eintrag starten.
 - **Journal-Prompt-Bibliothek** – eine anpassbare **Sammlung** von
-  Reflexionsfragen: als **Favorit ⭐︎ markieren**, bearbeiten, archivieren,
-  per Ollama generieren – und mit einem Klick **einen Eintrag damit starten**.
+  Reflexionsfragen: als **Favorit ⭐︎ markieren**, bearbeiten, archivieren und
+  mit einem Klick **einen Eintrag damit starten**. Neue Fragen entstehen
+  **manuell** oder werden **aus deinen bisherigen Einträgen generiert** – auf
+  kritische Selbstreflexion ausgelegt (Muster, Gefühle, Ziele, blinde Flecken).
 - **KI-Analyse nach jedem Eintrag** – Zusammenfassung, **Gefühle mit Intensität
   (0–10)**, Themen, Personen, Orte, Erkenntnisse, Ideen, Vorhaben, Ziele, Muster
   und 7-Tage-Vergleich; strukturiert lokal je Eintrag gespeichert (`EntryAnalysis`).
