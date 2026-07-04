@@ -22,6 +22,10 @@ final class JournalPrompt {
     /// Lets the user hide a prompt without deleting it.
     var isArchived: Bool
 
+    /// User-marked favourite; favourites bubble to the top of the library and
+    /// are the quickest to start writing from. Defaulted for safe migration.
+    var isFavorite: Bool = false
+
     var createdAt: Date
 
     init(
@@ -30,7 +34,8 @@ final class JournalPrompt {
         category: String = "Allgemein",
         isUserCreated: Bool = false,
         isAIGenerated: Bool = false,
-        isArchived: Bool = false
+        isArchived: Bool = false,
+        isFavorite: Bool = false
     ) {
         self.id = id
         self.text = text
@@ -38,6 +43,7 @@ final class JournalPrompt {
         self.isUserCreated = isUserCreated
         self.isAIGenerated = isAIGenerated
         self.isArchived = isArchived
+        self.isFavorite = isFavorite
         self.createdAt = .now
     }
 }

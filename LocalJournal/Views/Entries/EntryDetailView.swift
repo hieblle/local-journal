@@ -1,10 +1,13 @@
 import SwiftUI
 import SwiftData
 
-/// Read view for a single entry plus its structured AI analysis. Offers a
-/// "re-analyse" action (useful for entries written while Ollama was offline).
+/// Detail view for a single entry. Two modes:
+///  - **Read**: the entry text plus its structured AI analysis.
+///  - **Edit**: title, date and text become editable (tap "Bearbeiten").
+/// Offers a "neu analysieren" action (useful after edits or for entries written
+/// while Ollama was offline).
 struct EntryDetailView: View {
-    let entry: JournalEntry
+    @Bindable var entry: JournalEntry
 
     @Environment(\.modelContext) private var context
     @Environment(AnalysisService.self) private var analysis
@@ -15,22 +18,82 @@ struct EntryDetailView: View {
 
     @State private var showDeleteConfirm = false
 
+    // Edit mode + drafts.
+    @State private var isEditing = false
+    @State private var draftTitle = ""
+    @State private var draftDate = Date.now
+    @State private var draftText = ""
+
+    private var draftWordCount: Int { JournalEntry.countWords(in: draftText) }
+    private var canSaveEdits: Bool {
+        !draftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// The text was changed after the last analysis ran, so the analysis is stale.
+    private var analysisIsStale: Bool {
+        guard let a = entry.analysis, entry.analysisStatus == .completed else { return false }
+        return entry.updatedAt > a.createdAt.addingTimeInterval(1)
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 headerCard
-                entryTextCard
-                if let analysis = entry.analysis, entry.analysisStatus == .completed {
-                    analysisSection(analysis)
+                if isEditing {
+                    editCard
                 } else {
-                    analysisPlaceholder
+                    entryTextCard
+                    if analysisIsStale {
+                        staleAnalysisBanner
+                    }
+                    if let analysis = entry.analysis, entry.analysisStatus == .completed {
+                        analysisSection(analysis)
+                    } else {
+                        analysisPlaceholder
+                    }
                 }
             }
             .padding(20)
+            .frame(maxWidth: 760, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .navigationTitle(entry.title.isEmpty ? "Eintrag" : entry.title)
-        .toolbar {
+        .navigationTitle(isEditing ? "Eintrag bearbeiten"
+                                   : (entry.title.isEmpty ? "Eintrag" : entry.title))
+        .toolbar { toolbarContent }
+        .confirmationDialog("Diesen Eintrag löschen?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+            Button("Löschen", role: .destructive) {
+                context.delete(entry)
+                try? context.save()
+                dismiss()
+            }
+            Button("Abbrechen", role: .cancel) {}
+        }
+    }
+
+    // MARK: - Toolbar
+
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        if isEditing {
             ToolbarItemGroup(placement: .primaryAction) {
+                Button("Abbrechen") { isEditing = false }
+                Button {
+                    saveEdits()
+                } label: {
+                    Label("Sichern", systemImage: "checkmark.circle.fill")
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(!canSaveEdits)
+                .keyboardShortcut("s", modifiers: .command)
+            }
+        } else {
+            ToolbarItemGroup(placement: .primaryAction) {
+                Button {
+                    beginEditing()
+                } label: {
+                    Label("Bearbeiten", systemImage: "pencil")
+                }
+
                 Button {
                     reanalyze()
                 } label: {
@@ -49,17 +112,9 @@ struct EntryDetailView: View {
                 }
             }
         }
-        .confirmationDialog("Diesen Eintrag löschen?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-            Button("Löschen", role: .destructive) {
-                context.delete(entry)
-                try? context.save()
-                dismiss()
-            }
-            Button("Abbrechen", role: .cancel) {}
-        }
     }
 
-    // MARK: - Cards
+    // MARK: - Header
 
     private var headerCard: some View {
         HStack {
@@ -68,9 +123,13 @@ struct EntryDetailView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 HStack(spacing: 10) {
-                    Label("\(entry.wordCount) Wörter", systemImage: "text.word.spacing")
+                    Label("\(isEditing ? draftWordCount : entry.wordCount) Wörter",
+                          systemImage: "text.word.spacing")
                     if entry.writingSeconds > 0 {
                         Label(formattedDuration(entry.writingSeconds), systemImage: "timer")
+                    }
+                    if entry.updatedAt > entry.createdAt.addingTimeInterval(1) {
+                        Label("bearbeitet", systemImage: "pencil")
                     }
                 }
                 .font(.caption)
@@ -81,6 +140,8 @@ struct EntryDetailView: View {
         }
     }
 
+    // MARK: - Read: entry text
+
     private var entryTextCard: some View {
         SectionCard(title: "Eintrag", systemImage: "doc.text") {
             Text(entry.text.isEmpty ? "(kein Text)" : entry.text)
@@ -89,6 +150,56 @@ struct EntryDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
+
+    // MARK: - Edit: title / date / text
+
+    private var editCard: some View {
+        SectionCard(title: "Eintrag bearbeiten", systemImage: "pencil") {
+            VStack(alignment: .leading, spacing: 14) {
+                TextField("Titel (optional)", text: $draftTitle)
+                    .textFieldStyle(.plain)
+                    .font(.title3.weight(.semibold))
+
+                DateFieldButton(date: $draftDate)
+
+                Divider()
+
+                TextEditorWithPlaceholder(text: $draftText,
+                                          placeholder: "Schreib deinen Eintrag …",
+                                          minHeight: 300)
+
+                HStack {
+                    Label("\(draftWordCount) Wörter", systemImage: "text.word.spacing")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    if settings.autoAnalyze {
+                        Label("Analyse wird nach dem Sichern aktualisiert", systemImage: "sparkles")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+    }
+
+    private var staleAnalysisBanner: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "sparkles")
+                .foregroundStyle(.orange)
+            Text("Der Text wurde nach der Analyse geändert.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Button("Neu analysieren") { reanalyze() }
+                .buttonStyle(.bordered)
+                .disabled(entry.analysisStatus == .running)
+        }
+        .padding(12)
+        .background(.orange.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    // MARK: - Analysis (read only)
 
     @ViewBuilder
     private func analysisSection(_ analysis: EntryAnalysis) -> some View {
@@ -239,6 +350,33 @@ struct EntryDetailView: View {
     }
 
     // MARK: - Actions
+
+    private func beginEditing() {
+        draftTitle = entry.title
+        draftDate = entry.date
+        draftText = entry.text
+        isEditing = true
+    }
+
+    private func saveEdits() {
+        guard canSaveEdits else { return }
+        let textChanged = draftText != entry.text
+
+        entry.title = draftTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        entry.date = draftDate
+        entry.text = draftText
+        entry.refreshWordCount()
+        entry.updatedAt = .now
+        try? context.save()
+
+        isEditing = false
+
+        // The old analysis no longer matches the edited text: refresh it
+        // best-effort when auto-analyse is on (degrades to "pending" if offline).
+        if textChanged && settings.autoAnalyze {
+            reanalyze()
+        }
+    }
 
     private func reanalyze() {
         let captured = entry

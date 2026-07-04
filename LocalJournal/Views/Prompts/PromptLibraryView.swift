@@ -1,9 +1,13 @@
 import SwiftUI
 import SwiftData
 
-/// The journal prompt library: browse, add, archive and AI-generate writing
-/// impulses. These are user-facing reflection questions, not LLM templates.
+/// The journal prompt library: a *customizable collection* of reflection
+/// questions you can favourite, edit, archive and — most importantly — start a
+/// new entry from. These are user-facing writing impulses, not LLM templates.
 struct PromptLibraryView: View {
+    /// Start a new entry preloaded with this reflection question.
+    var onStartWriting: (String) -> Void = { _ in }
+
     @Environment(\.modelContext) private var context
     @Environment(AnalysisService.self) private var analysis
 
@@ -12,24 +16,40 @@ struct PromptLibraryView: View {
     @Query private var settingsList: [AppSettings]
 
     @State private var showArchived = false
-    @State private var showAddSheet = false
+    @State private var onlyFavorites = false
     @State private var isGenerating = false
     @State private var generationMessage: String?
+
+    // One sheet for both adding and editing.
+    @State private var showEditor = false
+    @State private var editingPrompt: JournalPrompt?
 
     private var settings: AppSettings { settingsList.first ?? AppSettings() }
 
     private var visiblePrompts: [JournalPrompt] {
-        showArchived ? prompts : prompts.filter { !$0.isArchived }
+        prompts.filter { prompt in
+            (showArchived || !prompt.isArchived) && (!onlyFavorites || prompt.isFavorite)
+        }
     }
 
     private var grouped: [(key: String, value: [JournalPrompt])] {
         Dictionary(grouping: visiblePrompts, by: { $0.category })
-            .map { ($0.key, $0.value) }
+            .map { (key: $0.key, value: sortedForDisplay($0.value)) }
             .sorted { $0.key < $1.key }
+    }
+
+    /// Favourites first, then most recent.
+    private func sortedForDisplay(_ items: [JournalPrompt]) -> [JournalPrompt] {
+        items.sorted { lhs, rhs in
+            if lhs.isFavorite != rhs.isFavorite { return lhs.isFavorite }
+            return lhs.createdAt > rhs.createdAt
+        }
     }
 
     var body: some View {
         List {
+            introSection
+
             if let generationMessage {
                 Section {
                     Label(generationMessage, systemImage: "info.circle")
@@ -39,23 +59,38 @@ struct PromptLibraryView: View {
             }
 
             if visiblePrompts.isEmpty {
-                EmptyHint(title: "Keine Prompts",
+                EmptyHint(title: onlyFavorites ? "Keine Favoriten" : "Keine Prompts",
                           systemImage: "lightbulb",
-                          message: "Füge eigene Reflexionsfragen hinzu oder lass dir welche von Ollama vorschlagen.")
+                          message: onlyFavorites
+                            ? "Markiere Prompts mit dem Stern, um sie hier zu sammeln."
+                            : "Füge eigene Reflexionsfragen hinzu oder lass dir welche von Ollama vorschlagen.")
             }
 
             ForEach(grouped, id: \.key) { group in
                 Section(group.key) {
                     ForEach(group.value) { prompt in
-                        PromptRow(prompt: prompt)
+                        PromptRow(prompt: prompt,
+                                  onStart: { onStartWriting(prompt.text) },
+                                  onEdit: { editingPrompt = prompt; showEditor = true },
+                                  onToggleFavorite: { toggleFavorite(prompt) },
+                                  onToggleArchive: { prompt.isArchived.toggle(); save() },
+                                  onDelete: { context.delete(prompt); save() })
+                            .swipeActions(edge: .leading) {
+                                Button {
+                                    toggleFavorite(prompt)
+                                } label: {
+                                    Label("Favorit", systemImage: "star")
+                                }
+                                .tint(.yellow)
+                            }
                             .swipeActions(edge: .trailing) {
                                 Button(role: .destructive) {
-                                    context.delete(prompt)
+                                    context.delete(prompt); save()
                                 } label: {
                                     Label("Löschen", systemImage: "trash")
                                 }
                                 Button {
-                                    prompt.isArchived.toggle()
+                                    prompt.isArchived.toggle(); save()
                                 } label: {
                                     Label(prompt.isArchived ? "Aktivieren" : "Archivieren",
                                           systemImage: prompt.isArchived ? "tray.and.arrow.up" : "archivebox")
@@ -69,6 +104,9 @@ struct PromptLibraryView: View {
         .navigationTitle("Prompts")
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
+                Toggle(isOn: $onlyFavorites) {
+                    Label("Favoriten", systemImage: onlyFavorites ? "star.fill" : "star")
+                }
                 Toggle(isOn: $showArchived) {
                     Label("Archiv", systemImage: "archivebox")
                 }
@@ -83,19 +121,55 @@ struct PromptLibraryView: View {
                 }
                 .disabled(isGenerating)
                 Button {
-                    showAddSheet = true
+                    editingPrompt = nil
+                    showEditor = true
                 } label: {
                     Label("Hinzufügen", systemImage: "plus")
                 }
             }
         }
-        .sheet(isPresented: $showAddSheet) {
-            AddPromptSheet { text, category in
-                let prompt = JournalPrompt(text: text, category: category, isUserCreated: true)
-                context.insert(prompt)
-                try? context.save()
+        .sheet(isPresented: $showEditor) {
+            PromptEditorSheet(
+                initialText: editingPrompt?.text ?? "",
+                initialCategory: editingPrompt?.category ?? "Allgemein",
+                isEditing: editingPrompt != nil
+            ) { text, category in
+                if let prompt = editingPrompt {
+                    prompt.text = text
+                    prompt.category = category
+                } else {
+                    context.insert(JournalPrompt(text: text, category: category, isUserCreated: true))
+                }
+                save()
             }
         }
+    }
+
+    // MARK: - Intro
+
+    private var introSection: some View {
+        Section {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "lightbulb.fill")
+                    .foregroundStyle(.yellow)
+                Text("Deine Sammlung an Reflexionsfragen. Markiere Favoriten ⭐︎, "
+                     + "bearbeite sie oder starte direkt einen Eintrag damit.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.vertical, 2)
+        }
+    }
+
+    // MARK: - Actions
+
+    private func toggleFavorite(_ prompt: JournalPrompt) {
+        prompt.isFavorite.toggle()
+        save()
+    }
+
+    private func save() {
+        try? context.save()
     }
 
     private func generate() async {
@@ -108,18 +182,31 @@ struct PromptLibraryView: View {
             for text in suggestions {
                 context.insert(JournalPrompt(text: text, category: "KI-Vorschläge", isAIGenerated: true))
             }
-            try? context.save()
+            save()
             generationMessage = "\(suggestions.count) neue Vorschläge hinzugefügt."
         }
         isGenerating = false
     }
 }
 
+/// A single prompt in the library, with inline actions (start, favourite, more).
 private struct PromptRow: View {
     @Bindable var prompt: JournalPrompt
+    var onStart: () -> Void
+    var onEdit: () -> Void
+    var onToggleFavorite: () -> Void
+    var onToggleArchive: () -> Void
+    var onDelete: () -> Void
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 12) {
+            Button(action: onToggleFavorite) {
+                Image(systemName: prompt.isFavorite ? "star.fill" : "star")
+                    .foregroundStyle(prompt.isFavorite ? .yellow : .secondary)
+            }
+            .buttonStyle(.plain)
+            .help(prompt.isFavorite ? "Favorit entfernen" : "Als Favorit markieren")
+
             VStack(alignment: .leading, spacing: 3) {
                 Text(prompt.text)
                     .font(.body)
@@ -136,9 +223,40 @@ private struct PromptRow: View {
                     }
                 }
             }
-            Spacer()
+
+            Spacer(minLength: 8)
+
+            Button(action: onStart) {
+                Label("Schreiben", systemImage: "square.and.pencil")
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .help("Eintrag mit dieser Frage starten")
+
+            Menu {
+                Button { onEdit() } label: { Label("Bearbeiten", systemImage: "pencil") }
+                Button { onToggleFavorite() } label: {
+                    Label(prompt.isFavorite ? "Favorit entfernen" : "Favorit",
+                          systemImage: prompt.isFavorite ? "star.slash" : "star")
+                }
+                Button { onToggleArchive() } label: {
+                    Label(prompt.isArchived ? "Aktivieren" : "Archivieren",
+                          systemImage: prompt.isArchived ? "tray.and.arrow.up" : "archivebox")
+                }
+                Divider()
+                Button(role: .destructive) { onDelete() } label: {
+                    Label("Löschen", systemImage: "trash")
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .foregroundStyle(.secondary)
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 3)
+        .contentShape(Rectangle())
     }
 
     private func badge(_ text: String, systemImage: String, tint: Color) -> some View {
@@ -148,20 +266,38 @@ private struct PromptRow: View {
     }
 }
 
-/// Sheet for manually adding a prompt.
-private struct AddPromptSheet: View {
+/// Sheet for adding *or* editing a prompt.
+private struct PromptEditorSheet: View {
     @Environment(\.dismiss) private var dismiss
-    var onAdd: (String, String) -> Void
 
-    @State private var text = ""
-    @State private var category = "Allgemein"
+    let initialText: String
+    let initialCategory: String
+    let isEditing: Bool
+    var onSave: (String, String) -> Void
+
+    @State private var text: String
+    @State private var category: String
 
     private let categories = ["Allgemein", "Gefühle", "Muster", "Vermeidung",
-                              "Perspektive", "Beziehungen", "Energie & Fokus"]
+                              "Perspektive", "Beziehungen", "Energie & Fokus", "KI-Vorschläge"]
+
+    init(initialText: String,
+         initialCategory: String,
+         isEditing: Bool,
+         onSave: @escaping (String, String) -> Void) {
+        self.initialText = initialText
+        self.initialCategory = initialCategory
+        self.isEditing = isEditing
+        self.onSave = onSave
+        _text = State(initialValue: initialText)
+        _category = State(initialValue: initialCategory)
+    }
+
+    private var trimmed: String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Neuer Prompt")
+            Text(isEditing ? "Prompt bearbeiten" : "Neuer Prompt")
                 .font(.title3.weight(.semibold))
 
             VStack(alignment: .leading, spacing: 6) {
@@ -170,27 +306,31 @@ private struct AddPromptSheet: View {
                     .foregroundStyle(.secondary)
                 TextField("z. B. Was hat mich heute überrascht?", text: $text, axis: .vertical)
                     .textFieldStyle(.roundedBorder)
-                    .lineLimit(2...4)
+                    .lineLimit(2...5)
             }
 
             Picker("Kategorie", selection: $category) {
-                ForEach(categories, id: \.self) { Text($0).tag($0) }
+                ForEach(categoryOptions, id: \.self) { Text($0).tag($0) }
             }
 
             HStack {
                 Spacer()
                 Button("Abbrechen") { dismiss() }
-                Button("Hinzufügen") {
-                    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                Button(isEditing ? "Sichern" : "Hinzufügen") {
                     guard !trimmed.isEmpty else { return }
-                    onAdd(trimmed, category)
+                    onSave(trimmed, category)
                     dismiss()
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(trimmed.isEmpty)
             }
         }
         .padding(20)
-        .frame(width: 420)
+        .frame(width: 440)
+    }
+
+    /// Ensure the current category is always selectable even if it's custom.
+    private var categoryOptions: [String] {
+        categories.contains(category) ? categories : categories + [category]
     }
 }

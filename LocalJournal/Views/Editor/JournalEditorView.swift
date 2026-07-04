@@ -5,6 +5,11 @@ import SwiftData
 /// AI analysis is then kicked off best-effort (and degrades to "pending" when
 /// Ollama is unavailable).
 struct JournalEditorView: View {
+    /// Optional reflection prompt to preload (handed over from the Prompts page).
+    var initialPrompt: String? = nil
+    /// Called once the initial prompt has been consumed, so the parent can clear it.
+    var onConsumePrompt: () -> Void = {}
+
     @Environment(\.modelContext) private var context
     @Environment(AnalysisService.self) private var analysis
 
@@ -39,25 +44,11 @@ struct JournalEditorView: View {
                         TimerBar(timer: timer)
                     }
 
-                    if let activePrompt {
-                        promptBanner(activePrompt)
-                    }
+                    promptArea
 
-                    TextEditor(text: $text)
-                        .font(.body)
-                        .frame(minHeight: 320)
-                        .scrollContentBackground(.hidden)
-                        .padding(12)
-                        .background(Color.cardSurface, in: RoundedRectangle(cornerRadius: 12))
-                        .overlay(alignment: .topLeading) {
-                            if text.isEmpty {
-                                Text("Schreib einfach los …")
-                                    .foregroundStyle(.tertiary)
-                                    .padding(.horizontal, 17)
-                                    .padding(.vertical, 20)
-                                    .allowsHitTesting(false)
-                            }
-                        }
+                    TextEditorWithPlaceholder(text: $text,
+                                              placeholder: "Schreib einfach los …",
+                                              minHeight: 320)
                 }
                 .padding(20)
             }
@@ -97,8 +88,7 @@ struct JournalEditorView: View {
                 .font(.title2.weight(.semibold))
 
             HStack {
-                DatePicker("Datum", selection: $date, displayedComponents: .date)
-                    .labelsHidden()
+                DateFieldButton(date: $date)
                 Spacer()
                 Toggle(isOn: $timerEnabled.animation()) {
                     Label("Timer", systemImage: "timer")
@@ -113,27 +103,70 @@ struct JournalEditorView: View {
 
     // MARK: - Prompt picker
 
+    /// Either the active reflection question (as a banner) or an inline
+    /// invitation to start writing from one.
+    @ViewBuilder
+    private var promptArea: some View {
+        if let activePrompt {
+            promptBanner(activePrompt)
+        } else if !availablePrompts.isEmpty {
+            promptChooserInline
+        }
+    }
+
+    private var promptChooserInline: some View {
+        Menu {
+            promptMenuContent
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "lightbulb")
+                    .foregroundStyle(.yellow)
+                Text("Mit einer Reflexionsfrage starten")
+                Spacer()
+                Image(systemName: "chevron.down")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            .font(.callout)
+            .foregroundStyle(.secondary)
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.yellow.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.yellow.opacity(0.20)))
+            .contentShape(Rectangle())
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
     private var promptMenu: some View {
         Menu {
-            if availablePrompts.isEmpty {
-                Text("Keine Prompts vorhanden")
-            } else {
-                ForEach(groupedPrompts, id: \.key) { group in
-                    Section(group.key) {
-                        ForEach(group.value) { prompt in
-                            Button(prompt.text) { applyPrompt(prompt) }
-                        }
-                    }
-                }
-            }
+            promptMenuContent
         } label: {
             Label("Impuls wählen", systemImage: "lightbulb")
         }
     }
 
+    @ViewBuilder
+    private var promptMenuContent: some View {
+        if availablePrompts.isEmpty {
+            Text("Keine Prompts vorhanden")
+        } else {
+            ForEach(groupedPrompts, id: \.key) { group in
+                Section(group.key) {
+                    ForEach(group.value) { prompt in
+                        Button(prompt.text) { applyPrompt(prompt) }
+                    }
+                }
+            }
+        }
+    }
+
     private var groupedPrompts: [(key: String, value: [JournalPrompt])] {
+        // Favourites first within the flat list, then grouped by category.
         Dictionary(grouping: availablePrompts, by: { $0.category })
-            .map { ($0.key, $0.value) }
+            .map { ($0.key, $0.value.sorted { ($0.isFavorite ? 0 : 1) < ($1.isFavorite ? 0 : 1) }) }
             .sorted { $0.key < $1.key }
     }
 
@@ -153,6 +186,7 @@ struct JournalEditorView: View {
                     .foregroundStyle(.tertiary)
             }
             .buttonStyle(.plain)
+            .help("Reflexionsfrage entfernen")
         }
         .padding(12)
         .background(.yellow.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
@@ -160,7 +194,6 @@ struct JournalEditorView: View {
 
     private func applyPrompt(_ prompt: JournalPrompt) {
         activePrompt = prompt.text
-        if title.isEmpty { title = prompt.text }
     }
 
     // MARK: - Footer
@@ -203,6 +236,12 @@ struct JournalEditorView: View {
         timerEnabled = settings.timerEnabledByDefault
         timer.durationMinutes = settings.timerDurationMinutes
         timer.reset()
+
+        // Preload a reflection prompt handed over from the Prompts page.
+        if let initialPrompt, !initialPrompt.isEmpty {
+            activePrompt = initialPrompt
+            onConsumePrompt()
+        }
     }
 
     private func save() {

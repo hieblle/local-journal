@@ -11,10 +11,16 @@ Netzwerkverbindung geht an deinen lokalen Ollama-Server.
 
 - **Dashboard** – Streak, Wörter diese Woche, Einträge/Wörter gesamt, letzte
   Einträge, kurze KI-Zusammenfassungen, erkannte Gefühle/Themen/Personen/Insights.
-- **Editor** – Titel, Datum, Text, optionaler & einstellbarer Schreib-Timer.
-  Einträge werden **immer zuerst lokal gespeichert**; die KI-Analyse läuft danach.
-- **Journal-Prompt-Bibliothek** – Reflexionsfragen als Schreibimpulse: sichtbar,
-  beim Schreiben auswählbar, manuell ergänzbar und per Ollama generierbar.
+- **Editor** – Titel, Datum (schöner Kalender-Popover), Text, optionaler &
+  einstellbarer Schreib-Timer. Einträge werden **immer zuerst lokal gespeichert**;
+  die KI-Analyse läuft danach. Direkt im Editor lässt sich **mit einer
+  Reflexionsfrage starten**.
+- **Eintrag ansehen & bearbeiten** – jeder Eintrag öffnet eine Detailseite mit
+  Text und der vollständigen KI-Analyse; per „Bearbeiten" lassen sich Titel,
+  Datum und Text ändern (die Analyse wird danach aktualisiert).
+- **Journal-Prompt-Bibliothek** – eine anpassbare **Sammlung** von
+  Reflexionsfragen: als **Favorit ⭐︎ markieren**, bearbeiten, archivieren,
+  per Ollama generieren – und mit einem Klick **einen Eintrag damit starten**.
 - **KI-Analyse nach jedem Eintrag** – Zusammenfassung, **Gefühle mit Intensität
   (0–10)**, Themen, Personen, Orte, Erkenntnisse, Ideen, Vorhaben, Ziele, Muster
   und 7-Tage-Vergleich; strukturiert lokal je Eintrag gespeichert (`EntryAnalysis`).

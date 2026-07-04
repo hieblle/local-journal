@@ -50,6 +50,10 @@ struct ContentView: View {
     @State private var selection: AppSection? = .dashboard
     @State private var analysis: AnalysisService?
 
+    /// A reflection prompt handed from the Prompts page to the editor so the
+    /// user can start writing straight from a question.
+    @State private var pendingPrompt: String?
+
     var body: some View {
         Group {
             if let analysis {
@@ -64,7 +68,13 @@ struct ContentView: View {
                     NavigationStack {
                         detail(for: selection ?? .dashboard)
                             .navigationDestination(for: JournalEntry.self) { entry in
+                                // The environment must be re-injected on the
+                                // destination: values set on the NavigationStack
+                                // do NOT reach navigationDestination content, so
+                                // EntryDetailView would otherwise crash looking
+                                // up AnalysisService.
                                 EntryDetailView(entry: entry)
+                                    .environment(analysis)
                             }
                     }
                     .environment(analysis)
@@ -84,14 +94,21 @@ struct ContentView: View {
         }
     }
 
+    /// Switch to the editor and pre-load it with a reflection prompt.
+    private func startWriting(with prompt: String) {
+        pendingPrompt = prompt
+        selection = .write
+    }
+
     @ViewBuilder
     private func detail(for section: AppSection) -> some View {
         switch section {
         case .dashboard: DashboardView(goToSection: { selection = $0 })
         case .memory:    MemoryBoardView()
-        case .write:     JournalEditorView()
+        case .write:     JournalEditorView(initialPrompt: pendingPrompt,
+                                           onConsumePrompt: { pendingPrompt = nil })
         case .entries:   EntryListView()
-        case .prompts:   PromptLibraryView()
+        case .prompts:   PromptLibraryView(onStartWriting: startWriting)
         case .graph:     KnowledgeGraphView()
         case .analysis:  AnalysisView()
         case .settings:  SettingsView()

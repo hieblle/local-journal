@@ -141,9 +141,9 @@ struct DashboardView: View {
         SectionCard(title: "Letzte Einträge", systemImage: "clock") {
             VStack(spacing: 0) {
                 ForEach(recentEntries) { entry in
-                    NavigationLink {
-                        EntryDetailView(entry: entry)
-                    } label: {
+                    // Value-based so it routes through the shared
+                    // navigationDestination (which injects AnalysisService).
+                    NavigationLink(value: entry) {
                         DashboardEntryRow(entry: entry)
                     }
                     .buttonStyle(.plain)
