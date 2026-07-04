@@ -41,12 +41,11 @@ struct KnowledgeGraphService {
 
         add(result.people, kind: .person)
         add(result.topics, kind: .topic)
-        add(result.feelings, kind: .feeling)
+        add(result.feelings, kind: .feeling)        // names derived from emotions
         add(result.ideas, kind: .idea)
         add(result.keyInsights, kind: .learning)   // insights == learnings
         add(result.tasks, kind: .task)
         add(result.goals, kind: .goal)
-        add(result.events, kind: .event)
         add(result.places, kind: .place)
         add(result.patterns, kind: .pattern)        // cross-entry patterns as nodes
 

@@ -39,15 +39,14 @@ enum LLMPromptTemplates {
         Analysiere den folgenden Journaleintrag und gib GENAU dieses JSON zurück:
         {
           "summary": "1-2 Sätze, die den Eintrag neutral zusammenfassen",
-          "feelings": ["erkannte Gefühle/Stimmungen, kurze Begriffe"],
-          "topics": ["zentrale Themen, kurze Substantive, z. B. Arbeit, Stress"],
+          "emotions": [{"name": "Gefühl, kurzer Begriff", "intensity": 0}],
+          "topics": ["zentrale Themen, kurze Substantive, z. B. Arbeit, Kommunikation"],
           "people": ["konkret erwähnte Personen, nur Namen"],
-          "events": ["konkrete Ereignisse/Aktivitäten, z. B. Meeting, Lauf"],
           "places": ["konkret erwähnte Orte, z. B. Büro, zuhause"],
           "keyInsights": ["wichtige Erkenntnisse oder Learnings aus dem Eintrag"],
           "ideas": ["neue Ideen oder Einfälle, die im Eintrag auftauchen"],
           "tasks": ["konkrete Vorhaben/To-dos, die sich die Person vornimmt"],
-          "goals": ["längerfristige Ziele/Vorsätze, z. B. fitter werden"],
+          "goals": ["längerfristige Ziele/Vorsätze, z. B. ruhiger in Meetings bleiben"],
           "patterns": ["mögliche wiederkehrende Muster, die der Eintrag andeutet"],
           "moodScore": 0.0,
           "relationships": [
@@ -57,27 +56,31 @@ enum LLMPromptTemplates {
         }
 
         Erlaubte Typen für "sourceType"/"targetType":
-        person, topic, feeling, event, place, idea, learning, task, goal, pattern.
+        person, topic, feeling, place, goal, idea, learning, task, pattern.
 
         Regeln:
+        - "emotions": "intensity" ist eine ganze Zahl 0–10 (0 = kaum, 10 = sehr stark).
+          Verwende Gefühl-Begriffe unter "name" (z. B. Stress, Erleichterung).
         - "moodScore" ist eine Zahl zwischen -1.0 (sehr negativ) und 1.0 (sehr positiv).
         - Erfinde nichts, was nicht im Text vorkommt.
         - Halte die Listen kurz (max. 6 Einträge) und ohne Dopplungen.
+        - Lege KEINE eigenen Knoten für Ereignisse wie "Gespräch mit Anna" an;
+          verbinde stattdessen die Person direkt mit Thema/Gefühl.
         - "relationships" beschreibt Verbindungen zwischen den oben genannten Begriffen.
           "relation" MUSS exakt einer dieser Werte sein: \(RelationVocabulary.promptList()).
           Wähle die spezifischste passende Relation; nutze "relatedTo" nur, wenn keine andere passt.
-          Nutze nur Begriffe, die auch in den Listen oben vorkommen.
+          Nutze nur Begriffe, die auch in den Listen oben vorkommen (Personen/Themen/Gefühle/Orte/Ziele).
           Gib höchstens 8 Beziehungen an; bei keiner sinnvollen Beziehung: [].
 
         Beispiel NUR zur Orientierung für Struktur und Relationen – NICHT ausgeben,
         Inhalte NICHT übernehmen:
-        Text: "Nach dem Meeting mit Anna war ich gestresst. Ich will diese Woche
-        joggen gehen, um endlich fitter zu werden."
+        Text: "Das Gespräch mit Anna im Büro war anstrengend. Ich will ruhiger in
+        Meetings bleiben."
         Passende relationships:
         [
-          {"source": "Meeting mit Anna", "sourceType": "event", "relation": "involves", "target": "Anna", "targetType": "person"},
-          {"source": "Meeting mit Anna", "sourceType": "event", "relation": "causes", "target": "gestresst", "targetType": "feeling"},
-          {"source": "joggen gehen", "sourceType": "task", "relation": "partOf", "target": "fitter werden", "targetType": "goal"}
+          {"source": "Anna", "sourceType": "person", "relation": "causes", "target": "anstrengend", "targetType": "feeling"},
+          {"source": "anstrengend", "sourceType": "feeling", "relation": "feelsAbout", "target": "Kommunikation", "targetType": "topic"},
+          {"source": "ruhiger in Meetings bleiben", "sourceType": "goal", "relation": "about", "target": "Kommunikation", "targetType": "topic"}
         ]
 
         Titel: \(entryTitle.isEmpty ? "(kein Titel)" : entryTitle)

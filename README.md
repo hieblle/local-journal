@@ -15,17 +15,18 @@ Netzwerkverbindung geht an deinen lokalen Ollama-Server.
   Einträge werden **immer zuerst lokal gespeichert**; die KI-Analyse läuft danach.
 - **Journal-Prompt-Bibliothek** – Reflexionsfragen als Schreibimpulse: sichtbar,
   beim Schreiben auswählbar, manuell ergänzbar und per Ollama generierbar.
-- **KI-Analyse nach jedem Eintrag** – Zusammenfassung, Themen, Gefühle, Personen,
-  Erkenntnisse, Ideen, Vorhaben, Muster und 7-Tage-Vergleich; strukturiert lokal
-  gespeichert.
+- **KI-Analyse nach jedem Eintrag** – Zusammenfassung, **Gefühle mit Intensität
+  (0–10)**, Themen, Personen, Orte, Erkenntnisse, Ideen, Vorhaben, Ziele, Muster
+  und 7-Tage-Vergleich; strukturiert lokal je Eintrag gespeichert (`EntryAnalysis`).
 - **Entitäten** – `PersonEntity` und `TopicEntity` werden einmal angelegt und bei
   erneuter Erwähnung automatisch mit neuen Einträgen verknüpft.
-- **Wissensgraph** – Personen, Themen, Gefühle, Ereignisse, Orte, **Ideen,
-  Learnings, Vorhaben, Ziele und Muster** werden als Knoten mit typisierten,
-  gewichteten Kanten verbunden (Co-Occurrence ohne KI + typisierte Relationen mit
-  KI, per Few-shot gesteuert). Im Tab „Wissensgraph" wahlweise als **Liste** oder
-  als native, Obsidian-artige **Graph-Ansicht** (Force-Layout, Zoom/Pan, Filter,
-  lokaler Fokus – rein SwiftUI, keine Abhängigkeit).
+- **Wissensgraph** – wiederkehrende **Entitäten** (Personen, Themen, Gefühle,
+  Orte, Ziele) werden als Knoten mit typisierten, gewichteten Kanten verbunden
+  (Co-Occurrence ohne KI + typisierte Relationen mit KI, per Few-shot gesteuert).
+  Im Tab „Wissensgraph" als **Liste** oder als **lebendige Graph-Ansicht**: eine
+  kontinuierliche Force-Simulation ohne Überlappungen (Knoten ziehen/abstoßen,
+  Nachbarn passen sich live an), Mausrad-/Pinch-Zoom, Pan, Filter, Global ⇄
+  Umgebung – rein SwiftUI, keine Abhängigkeit.
   Details: [`docs/knowledge-graph.md`](./docs/knowledge-graph.md).
 - **Merken** – eine fokussierte Seite mit **offenen Vorhaben** (abhakbar),
   **Learnings** und **„Wichtig zum Merken"** (angepinnte Punkte ⭐︎ plus

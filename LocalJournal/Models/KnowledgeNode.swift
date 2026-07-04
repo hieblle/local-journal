@@ -15,7 +15,6 @@ enum NodeKind: String, Codable, CaseIterable, Identifiable {
     case learning
     case task
     case goal
-    case event
     case place
     case pattern
 
@@ -30,7 +29,6 @@ enum NodeKind: String, Codable, CaseIterable, Identifiable {
         case .learning: return "Learning"
         case .task:     return "Vorhaben"
         case .goal:     return "Ziel"
-        case .event:    return "Ereignis"
         case .place:    return "Ort"
         case .pattern:  return "Muster"
         }
@@ -45,7 +43,6 @@ enum NodeKind: String, Codable, CaseIterable, Identifiable {
         case .learning: return "Learnings"
         case .task:     return "Vorhaben"
         case .goal:     return "Ziele"
-        case .event:    return "Ereignisse"
         case .place:    return "Orte"
         case .pattern:  return "Muster"
         }
@@ -60,7 +57,6 @@ enum NodeKind: String, Codable, CaseIterable, Identifiable {
         case .learning: return "graduationcap"
         case .task:     return "checklist"
         case .goal:     return "target"
-        case .event:    return "calendar"
         case .place:    return "mappin.and.ellipse"
         case .pattern:  return "repeat"
         }
@@ -72,6 +68,17 @@ enum NodeKind: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .idea, .learning, .task, .goal, .pattern: return true
         default: return false
+        }
+    }
+
+    /// Whether this kind is shown in the **graph visualisation**. Only recurring,
+    /// interconnecting *entities* earn a place there; statement-like kinds
+    /// (learnings, ideas, tasks, patterns) are still stored and shown on the
+    /// "Merken" board and in the list, but would only clutter the graph.
+    var showsInGraph: Bool {
+        switch self {
+        case .person, .topic, .feeling, .place, .goal: return true
+        case .idea, .learning, .task, .pattern: return false
         }
     }
 
@@ -92,8 +99,6 @@ enum NodeKind: String, Codable, CaseIterable, Identifiable {
             return .task
         case "goal", "goals", "ziel", "ziele", "objective", "vorsatz":
             return .goal
-        case "event", "events", "ereignis", "ereignisse", "activity", "aktivität", "aktivitäten":
-            return .event
         case "place", "places", "location", "locations", "ort", "orte":
             return .place
         case "pattern", "patterns", "muster", "trend", "trends":

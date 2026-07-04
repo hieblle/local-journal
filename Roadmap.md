@@ -33,10 +33,14 @@ und Normalisierung. Siehe [`docs/knowledge-graph.md`](./docs/knowledge-graph.md)
 - [ ] **„Frag dein Journal"** (RAG): Retrieval + fundierte, belegte Antworten
 - [ ] **GraphRAG**: Retrieval, das den Graphen traversiert, + Themen-Summaries
       über Zeit
-- [x] Force-directed Visualisierung des Graphen (native SwiftUI-Canvas,
-      Liste/Graph-Umschalter, Zoom/Pan, Filter, lokaler Fokus)
+- [x] Lebendige Force-Simulation im Graph (Anziehung/Abstoßung/Kollision ohne
+      Überlappung, Abkühlen + Reheat, Positions-Persistenz, Mausrad-Zoom,
+      Global ⇄ Umgebung; nur Entitäts-Knoten)
+- [x] Gefühle mit Intensität (`EmotionScore`), Ereignis-Knoten entfernt
 - [ ] Navigation von einem Graph-Knoten direkt zu seinen Einträgen
-- [ ] Asynchrones Layout / Barnes-Hut für sehr große Graphen (>~300 Knoten)
+- [ ] Emotions-Intensität in Charts nutzen (z. B. Intensität über Zeit)
+- [ ] Barnes-Hut / Quadtree für sehr große Graphen (>~300 Knoten)
+- [ ] Zoom auf Cursor-Position (statt Zentrum) beim Mausrad
 - [ ] Muster auch aus dem 7-Tage-Vergleich in den Graph übernehmen (aktuell nur
       die Einzeleintrags-Patterns)
 - [ ] Semantisches Zusammenführen naher Satz-Knoten (Ideen/Ziele/Muster)

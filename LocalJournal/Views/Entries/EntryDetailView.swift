@@ -102,14 +102,13 @@ struct EntryDetailView: View {
 
         SectionCard(title: "Erkannte Signale", systemImage: "brain") {
             VStack(alignment: .leading, spacing: 14) {
-                signal("Gefühle", analysis.feelings, image: "heart", tint: .pink)
+                emotionsBlock(analysis.emotions)
                 signal("Themen", analysis.topics, image: "tag", tint: .blue)
                 signal("Personen", analysis.people, image: "person", tint: .purple)
-                signal("Ereignisse", analysis.events, image: "calendar", tint: .indigo)
                 signal("Orte", analysis.places, image: "mappin.and.ellipse", tint: .brown)
                 signal("Ziele", analysis.goals, image: "target", tint: .mint)
-                if analysis.feelings.isEmpty && analysis.topics.isEmpty && analysis.people.isEmpty
-                    && analysis.events.isEmpty && analysis.places.isEmpty && analysis.goals.isEmpty {
+                if analysis.emotions.isEmpty && analysis.topics.isEmpty && analysis.people.isEmpty
+                    && analysis.places.isEmpty && analysis.goals.isEmpty {
                     Text("Keine Signale erkannt.")
                         .font(.callout)
                         .foregroundStyle(.tertiary)
@@ -207,6 +206,34 @@ struct EntryDetailView: View {
                 Text(title)
                     .font(.subheadline.weight(.medium))
                 ChipsView(items: items, systemImage: image, tint: tint)
+            }
+        }
+    }
+
+    /// Emotions rendered as chips with their intensity (0–10); a stronger tint
+    /// signals higher intensity.
+    @ViewBuilder
+    private func emotionsBlock(_ emotions: [EmotionScore]) -> some View {
+        if !emotions.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Gefühle")
+                    .font(.subheadline.weight(.medium))
+                FlowLayout(spacing: 6) {
+                    ForEach(emotions) { emotion in
+                        HStack(spacing: 5) {
+                            Image(systemName: "heart.fill").font(.caption2)
+                            Text(emotion.name).font(.callout)
+                            Text("\(emotion.intensity)")
+                                .font(.caption2.weight(.semibold))
+                                .padding(.horizontal, 5).padding(.vertical, 1)
+                                .background(.pink.opacity(0.28), in: Capsule())
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Color.pink.opacity(0.12 + Double(emotion.intensity) / 10 * 0.18), in: Capsule())
+                        .foregroundStyle(.pink)
+                    }
+                }
             }
         }
     }

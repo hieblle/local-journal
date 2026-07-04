@@ -19,32 +19,35 @@ Kanten, deterministisch aufgebaut und für den Menschen überprüfbar.
 
 Ein Knoten ist ein wiedererkennbares Konzept. Kurzlabels vs. satzartige Knoten:
 
-| Kind        | Art        | Beispiel                                   | Quelle                     |
-|-------------|------------|--------------------------------------------|----------------------------|
-| `person`    | Label      | „Anna"                                      | `people`                   |
-| `topic`     | Label      | „Arbeit", „Schlaf"                          | `topics`                   |
-| `feeling`   | Label      | „überfordert", „ruhig"                      | `feelings`                 |
-| `event`     | Label      | „Meeting mit Anna", „Lauf"                  | `events`                   |
-| `place`     | Label      | „Büro", „zuhause"                           | `places`                   |
-| `idea`      | Aussage    | „Newsletter monatlich statt wöchentlich"    | `ideas`                    |
-| `learning`  | Aussage    | „Ich arbeite morgens fokussierter"          | `keyInsights`              |
-| `task`      | Aussage    | „Diese Woche Zahnarzttermin machen"         | `tasks`                    |
-| `goal`      | Aussage    | „fitter werden"                             | `goals`                    |
-| `pattern`   | Aussage    | „reagiert unter Zeitdruck gereizt"          | `patterns`                 |
+| Kind        | Art        | im Graph? | Beispiel                                | Quelle        |
+|-------------|------------|-----------|-----------------------------------------|---------------|
+| `person`    | Label      | ✅        | „Anna"                                   | `people`      |
+| `topic`     | Label      | ✅        | „Arbeit", „Kommunikation"                | `topics`      |
+| `feeling`   | Label      | ✅        | „Stress", „Erleichterung"                | `emotions`    |
+| `place`     | Label      | ✅        | „Büro", „zuhause"                        | `places`      |
+| `goal`      | Aussage    | ✅        | „ruhiger in Meetings bleiben"           | `goals`       |
+| `learning`  | Aussage    | ❌        | „Ich brauche klarere Erwartungen"        | `keyInsights` |
+| `idea`      | Aussage    | ❌        | „Newsletter monatlich statt wöchentlich" | `ideas`       |
+| `task`      | Aussage    | ❌        | „Vor Meeting Agenda klären"              | `tasks`       |
+| `pattern`   | Aussage    | ❌        | „Stress durch unklare Erwartungen"       | `patterns`    |
 
+- **Nur Entitäten im Graph (`NodeKind.showsInGraph`):** Personen, Themen, Gefühle,
+  Orte und Ziele werden **visualisiert** — sie wiederholen sich und verbinden sich
+  sinnvoll. Satzartige Knoten (Learnings, Ideen, Vorhaben, Muster) werden weiterhin
+  **gespeichert** und erscheinen auf der **„Merken"-Seite** und in der Listenansicht,
+  würden den Graphen aber nur zumüllen (v. a. Learnings werden schnell zu viele).
+- **Keine Ereignis-Knoten:** „Gespräch mit Anna" bekommt keinen eigenen Knoten;
+  stattdessen wird die Person direkt mit Thema/Gefühl verbunden (per Co-Occurrence
+  + typisierter Relation). Vermeidet redundante, isolierte Event-Knoten.
 - **`task` vs. `goal`:** ein `task` ist ein kurzfristiges To-do, ein `goal` ein
   längerfristiger Vorsatz. Tasks hängen typischerweise per `partOf` an einem Ziel.
-- **`pattern`-Knoten** heben die vom Modell erkannten wiederkehrenden Muster von
-  reinem Text (nur am `EntryAnalysis`) in den Graphen, wo sie über
-  Co-Occurrence mit Themen/Gefühlen sichtbar verknüpft werden — das
-  eintragsübergreifend wertvollste Signal.
+- **Gefühle mit Intensität:** `EntryAnalysis.emotions` ist `[EmotionScore]`
+  (`{name, intensity 0–10}`) — die kanonische Quelle; die Feeling-**Namen** (für
+  Graph/Charts) leiten sich daraus ab.
 - **De-Duplizierung** über `nodeKey = "<kind>#<normalisierterName>"`
   (`@Attribute(.unique)`). Gleiche Erwähnung ⇒ derselbe Knoten; `mentionCount`
   ergibt sich aus den verknüpften Einträgen.
-- `task`-Knoten haben `isResolved` (im Wissensgraph abhakbar).
-- Satzartige Knoten (`idea`, `learning`, `task`, `goal`, `pattern`) deduplizieren
-  nur bei exakter Übereinstimmung — nahe Varianten bleiben getrennt (bewusst, für
-  v1 akzeptiert; semantisches Zusammenführen kommt mit Embeddings).
+- `task`-Knoten haben `isResolved`, alle Knoten `isPinned` (für „Merken").
 
 ## Kanten (`KnowledgeEdge`) – mit und ohne KI
 
@@ -127,13 +130,19 @@ Robustheit bleibt erhalten: Ist Ollama offline, wird der Eintrag wie gehabt als
   müsste das entfallen (CloudKit erlaubt keine Unique-Constraints) – dann Dedup
   rein im Code. Siehe Sync-Planung.
 - **Visualisierung:** zwei Modi im Tab „Wissensgraph" (`KnowledgeGraphView`):
-  - **Liste** – ruhig und inspizierbar (Knoten, Verbindungen, verknüpfte Einträge).
-  - **Graph** – native, Obsidian-artige Node-Link-Ansicht (`GraphCanvasView` +
-    `GraphLayoutEngine`): Force-Layout **einmalig** berechnet und dann statisch
-    gezeichnet (kein Dauer-Simulationsaufwand), mit Zoom/Pan/Knoten-Ziehen,
-    Filtern (Typ, Mindestgewicht, „nur getypte Kanten") und **lokalem Fokus**
-    (Knoten antippen → nur seine Nachbarschaft). Aus Performancegründen auf die
-    Top-`nodeCap` Knoten begrenzt. Rein SwiftUI, keine Abhängigkeit.
+  - **Liste** – ruhig und inspizierbar (alle Knotentypen, Verbindungen, Einträge).
+  - **Graph** – native, **lebendige** Node-Link-Ansicht (`GraphCanvasView` +
+    `GraphSimulation`): eine kontinuierliche Force-Simulation (Anziehung entlang
+    Kanten, Abstoßung, **harte Kollision → keine Überlappungen**), die *abkühlt*
+    und im Ruhezustand pausiert (kein Leerlauf-Aufwand) und bei Interaktion oder
+    neuen Einträgen **wieder erwärmt** — so ordnet sich das Netz sichtbar neu und
+    wächst mit. Knoten ziehen (Nachbarn machen live Platz, Kanten folgen), Pan,
+    Zoom per **Mausrad**, Trackpad-Pinch und Buttons. Nur Entitäts-Knoten
+    (`showsInGraph`), Filter (Typ, Mindestgewicht, „nur getypte Kanten") und
+    **Global ⇄ Umgebung** (Knoten antippen → „Umgebung" zeigt nur die
+    Nachbarschaft, „Gesamt" zurück). Positionen bleiben über Rebuilds erhalten
+    (das Netz „springt" nicht bei jedem neuen Eintrag). Rein SwiftUI, keine
+    Abhängigkeit; auf `nodeCap` Knoten begrenzt.
 
 ## Nächste Stufen (Roadmap)
 

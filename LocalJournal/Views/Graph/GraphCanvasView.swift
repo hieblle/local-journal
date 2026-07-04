@@ -1,61 +1,61 @@
 import SwiftUI
 import SwiftData
+import AppKit
 
-/// Obsidian-style node-link visualisation of the knowledge graph, drawn natively
-/// in a `Canvas`. The layout is computed once per visible set (see
-/// `GraphLayoutEngine`) and then rendered statically — pan, zoom and node drag
-/// are pure view transforms, so there is no ongoing simulation cost.
+/// Obsidian-style, **living** node-link view of the knowledge graph.
 ///
-/// Kept *useful*, not just pretty: filters (kind, edge weight, hide
-/// co-occurrence) tame the hairball, and tapping a node offers a local focus
-/// view of just its neighbourhood.
+/// Nodes attract along their connections, gently repel, and never overlap; the
+/// layout re-organises continuously while active and pauses once settled. Drag a
+/// node and its neighbours make room; pan the canvas; zoom with the mouse wheel,
+/// a trackpad pinch, or the buttons. Only recurring **entities** (people, topics,
+/// feelings, places, goals) appear — statement-like nodes would just clutter it.
 struct GraphCanvasView: View {
     @Query private var allNodes: [KnowledgeNode]
     @Query private var allEdges: [KnowledgeEdge]
+
+    @State private var sim = GraphSimulation()
 
     // Filters
     @State private var selectedKind: NodeKind?
     @State private var hideCoOccurrence = false
     @State private var minWeight = 1
     @State private var focusID: UUID?
-
-    // Built (per visible set) — recomputed only when the signature changes.
-    @State private var gNodes: [KnowledgeNode] = []
-    @State private var gEdges: [GEdge] = []
-    @State private var positions: [CGPoint] = []
-    @State private var builtSignature = ""
-    @State private var canvasSize: CGSize = .zero
-
-    // View transform
-    @State private var zoom: CGFloat = 1
-    @State private var lastZoom: CGFloat = 1
-    @State private var pan: CGSize = .zero
-    @State private var lastPan: CGSize = .zero
-
-    // Interaction
     @State private var selectedID: UUID?
-    @State private var dragKind: DragKind?
 
-    private let nodeCap = 250
+    // Bookkeeping
+    @State private var builtSignature = ""
+    @State private var dragMode: DragMode?
+    @State private var panBaseline: CGSize = .zero
+    @State private var magnifyBaseline: CGFloat = 1
+    @State private var magnifying = false
+    @State private var scrollMonitor: Any?
 
-    private enum DragKind: Equatable { case canvas, node(Int) }
-    private struct GEdge { let a: Int; let b: Int; let weight: Double; let cooc: Bool }
+    private let nodeCap = 220
+    private enum DragMode: Equatable { case canvas, node }
 
     var body: some View {
         GeometryReader { geo in
-            Canvas { context, size in
-                draw(&context, size: size)
+            TimelineView(.animation(minimumInterval: 1.0 / 60.0, paused: sim.isSettled)) { context in
+                Canvas { ctx, size in draw(&ctx, size: size) }
+                    .onChange(of: context.date) { _, _ in sim.step() }
             }
-            .background(canvasBackground)
+            .background(Color.cardSurface.opacity(0.35))
+            .contentShape(Rectangle())
             .gesture(dragGesture)
             .gesture(magnifyGesture)
             .gesture(tapGesture)
+            .onHover { sim.isHovering = $0 }
             .overlay(alignment: .top) { controls }
             .overlay(alignment: .bottom) { if let node = selectedNode { banner(node) } }
             .overlay(alignment: .topTrailing) { if capped { cappedNote } }
-            .overlay { if gNodes.isEmpty && !builtSignature.isEmpty { emptyOverlay } }
-            .onAppear { canvasSize = geo.size; rebuild() }
-            .onChange(of: geo.size) { _, newSize in canvasSize = newSize; rebuild() }
+            .overlay { if sim.nodes.isEmpty && !builtSignature.isEmpty { emptyOverlay } }
+            .onAppear {
+                sim.setSize(geo.size)
+                installScrollMonitor()
+                rebuild()
+            }
+            .onDisappear { removeScrollMonitor() }
+            .onChange(of: geo.size) { _, newSize in sim.setSize(newSize) }
             .onChange(of: currentSignature) { _, _ in
                 if currentSignature != builtSignature { rebuild() }
             }
@@ -65,27 +65,26 @@ struct GraphCanvasView: View {
     // MARK: - Drawing
 
     private func draw(_ context: inout GraphicsContext, size: CGSize) {
-        guard positions.count == gNodes.count, !gNodes.isEmpty else { return }
+        let nodes = sim.nodes
+        guard !nodes.isEmpty else { return }
 
-        // Edges first.
-        for e in gEdges {
-            guard e.a < positions.count, e.b < positions.count else { continue }
-            let p1 = worldToScreen(positions[e.a])
-            let p2 = worldToScreen(positions[e.b])
+        for e in sim.edges {
+            guard e.a < nodes.count, e.b < nodes.count else { continue }
+            let p1 = sim.worldToScreen(CGPoint(x: nodes[e.a].x, y: nodes[e.a].y))
+            let p2 = sim.worldToScreen(CGPoint(x: nodes[e.b].x, y: nodes[e.b].y))
             var path = Path()
             path.move(to: p1)
             path.addLine(to: p2)
-            let base: Color = e.cooc ? .gray : .accentColor
-            let opacity = e.cooc ? 0.16 : 0.40
-            let width = (e.cooc ? 0.8 : 1.3) + min(e.weight, 6) / 6 * 1.6
+            let base: Color = e.typed ? .accentColor : .gray
+            let opacity = e.typed ? 0.45 : 0.20
+            let width = (e.typed ? 1.3 : 0.9) + e.weight / 6 * 1.6
             context.stroke(path, with: .color(base.opacity(opacity)), lineWidth: CGFloat(width))
         }
 
-        // Nodes + labels.
-        for (i, node) in gNodes.enumerated() {
-            let center = worldToScreen(positions[i])
-            let r = nodeRadius(node) * clampedZoom
-            let rect = CGRect(x: center.x - r, y: center.y - r, width: 2 * r, height: 2 * r)
+        for (i, node) in nodes.enumerated() {
+            let c = sim.worldToScreen(CGPoint(x: node.x, y: node.y))
+            let r = node.radius * sim.zoom
+            let rect = CGRect(x: c.x - r, y: c.y - r, width: 2 * r, height: 2 * r)
             context.fill(Path(ellipseIn: rect), with: .color(node.kind.tint))
 
             if node.id == selectedID || node.id == focusID {
@@ -93,17 +92,19 @@ struct GraphCanvasView: View {
                                with: .color(.primary), lineWidth: 2)
             }
 
-            if shouldLabel(node) {
+            if shouldLabel(node, count: nodes.count) {
                 let label = Text(node.name)
                     .font(.system(size: 10, weight: .medium))
                     .foregroundColor(.primary)
-                context.draw(label, at: CGPoint(x: center.x, y: center.y + r + 7), anchor: .top)
+                context.draw(label, at: CGPoint(x: c.x, y: c.y + r + 7), anchor: .top)
             }
         }
+        _ = size
     }
 
-    private var canvasBackground: some View {
-        Color.cardSurface.opacity(0.35)
+    private func shouldLabel(_ node: GraphSimulation.Node, count: Int) -> Bool {
+        node.id == selectedID || node.id == focusID
+            || count <= 22 || node.radius >= 16 || sim.zoom >= 1.6
     }
 
     // MARK: - Overlays
@@ -141,9 +142,9 @@ struct GraphCanvasView: View {
 
             Spacer(minLength: 0)
 
-            Button { setZoom(zoom / 1.25) } label: { Image(systemName: "minus.magnifyingglass") }
-            Button { resetView() } label: { Image(systemName: "arrow.counterclockwise") }
-            Button { setZoom(zoom * 1.25) } label: { Image(systemName: "plus.magnifyingglass") }
+            Button { setZoom(sim.zoom / 1.25) } label: { Image(systemName: "minus.magnifyingglass") }
+            Button { sim.zoom = 1; sim.pan = .zero } label: { Image(systemName: "arrow.counterclockwise") }
+            Button { setZoom(sim.zoom * 1.25) } label: { Image(systemName: "plus.magnifyingglass") }
         }
         .labelStyle(.titleAndIcon)
         .font(.caption)
@@ -170,7 +171,7 @@ struct GraphCanvasView: View {
             Button {
                 focusID = (focusID == node.id) ? nil : node.id
             } label: {
-                Label(focusID == node.id ? "Fokus lösen" : "Fokus", systemImage: "scope")
+                Label(focusID == node.id ? "Gesamt" : "Umgebung", systemImage: "scope")
             }
             .buttonStyle(.borderless)
             Button { selectedID = nil } label: {
@@ -205,102 +206,78 @@ struct GraphCanvasView: View {
     private var dragGesture: some Gesture {
         DragGesture(minimumDistance: 1, coordinateSpace: .local)
             .onChanged { value in
-                if dragKind == nil {
-                    dragKind = nodeIndex(at: value.startLocation).map(DragKind.node) ?? .canvas
+                if dragMode == nil {
+                    if sim.beginDrag(atScreen: value.startLocation) {
+                        dragMode = .node
+                    } else {
+                        dragMode = .canvas
+                        panBaseline = sim.pan
+                    }
                 }
-                guard let kind = dragKind else { return }
-                switch kind {
-                case .node(let i):
-                    if i < positions.count { positions[i] = screenToWorld(value.location) }
-                case .canvas:
-                    pan = CGSize(width: lastPan.width + value.translation.width,
-                                 height: lastPan.height + value.translation.height)
+                if let mode = dragMode {
+                    switch mode {
+                    case .node:
+                        sim.updateDrag(toScreen: value.location)
+                    case .canvas:
+                        sim.pan = CGSize(width: panBaseline.width + value.translation.width,
+                                         height: panBaseline.height + value.translation.height)
+                    }
                 }
             }
             .onEnded { _ in
-                if dragKind == .canvas { lastPan = pan }
-                dragKind = nil
+                if dragMode == .node { sim.endDrag() }
+                dragMode = nil
             }
     }
 
     private var magnifyGesture: some Gesture {
         MagnifyGesture()
-            .onChanged { value in zoom = clamp(lastZoom * value.magnification, 0.3, 4) }
-            .onEnded { _ in lastZoom = zoom }
+            .onChanged { value in
+                if !magnifying { magnifying = true; magnifyBaseline = sim.zoom }
+                sim.zoom = clampZoom(magnifyBaseline * value.magnification)
+            }
+            .onEnded { _ in magnifying = false }
     }
 
     private var tapGesture: some Gesture {
         SpatialTapGesture(coordinateSpace: .local)
             .onEnded { value in
-                if let i = nodeIndex(at: value.location) {
-                    selectedID = gNodes[i].id
+                if let i = sim.nodeIndex(atScreen: value.location) {
+                    selectedID = sim.nodes[i].id
                 } else {
                     selectedID = nil
                 }
             }
     }
 
-    // MARK: - Transform helpers
+    private func setZoom(_ value: CGFloat) { sim.zoom = clampZoom(value) }
+    private func clampZoom(_ v: CGFloat) -> CGFloat { min(max(v, 0.3), 4) }
 
-    private var clampedZoom: CGFloat { clamp(zoom, 0.3, 4) }
+    // MARK: - Mouse-wheel zoom (works with a plain mouse, not just trackpad)
 
-    private func worldToScreen(_ p: CGPoint) -> CGPoint {
-        let c = CGPoint(x: canvasSize.width / 2, y: canvasSize.height / 2)
-        return CGPoint(x: (p.x - c.x) * zoom + c.x + pan.width,
-                       y: (p.y - c.y) * zoom + c.y + pan.height)
-    }
-
-    private func screenToWorld(_ s: CGPoint) -> CGPoint {
-        let c = CGPoint(x: canvasSize.width / 2, y: canvasSize.height / 2)
-        return CGPoint(x: (s.x - pan.width - c.x) / zoom + c.x,
-                       y: (s.y - pan.height - c.y) / zoom + c.y)
-    }
-
-    private func nodeIndex(at screen: CGPoint) -> Int? {
-        guard positions.count == gNodes.count else { return nil }
-        var best: Int?
-        var bestDistance = CGFloat.greatestFiniteMagnitude
-        for i in gNodes.indices {
-            let c = worldToScreen(positions[i])
-            let ddx = c.x - screen.x, ddy = c.y - screen.y
-            let distance = (ddx * ddx + ddy * ddy).squareRoot()
-            let hit = nodeRadius(gNodes[i]) * clampedZoom + 6
-            if distance < hit, distance < bestDistance {
-                bestDistance = distance
-                best = i
-            }
+    private func installScrollMonitor() {
+        removeScrollMonitor()
+        let simulation = sim   // capture the shared instance, not the View
+        scrollMonitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { event in
+            guard simulation.isHovering else { return event }
+            let factor = 1 + event.scrollingDeltaY * 0.006
+            simulation.zoom = min(max(simulation.zoom * factor, 0.3), 4)
+            return nil   // consume so it doesn't scroll something behind
         }
-        return best
     }
 
-    private func nodeRadius(_ node: KnowledgeNode) -> CGFloat {
-        let m = CGFloat(node.mentionCount)
-        return 6 + min(m.squareRoot() * 3.5, 22)
+    private func removeScrollMonitor() {
+        if let monitor = scrollMonitor {
+            NSEvent.removeMonitor(monitor)
+            scrollMonitor = nil
+        }
     }
 
-    private func shouldLabel(_ node: KnowledgeNode) -> Bool {
-        node.id == selectedID || node.id == focusID
-            || gNodes.count <= 28 || node.mentionCount >= 3 || zoom >= 1.8
-    }
-
-    private func setZoom(_ value: CGFloat) {
-        zoom = clamp(value, 0.3, 4)
-        lastZoom = zoom
-    }
-
-    private func resetView() {
-        zoom = 1; lastZoom = 1; pan = .zero; lastPan = .zero
-    }
-
-    private func clamp(_ v: CGFloat, _ lo: CGFloat, _ hi: CGFloat) -> CGFloat {
-        min(max(v, lo), hi)
-    }
-
-    // MARK: - Selection helpers
+    // MARK: - Selection
 
     private var selectedNode: KnowledgeNode? {
         guard let id = selectedID else { return nil }
-        return gNodes.first { $0.id == id }
+        return allNodes.first { $0.id == id }
     }
 
     private func subtitle(for node: KnowledgeNode) -> String {
@@ -316,68 +293,61 @@ struct GraphCanvasView: View {
 
     // MARK: - Building the visible graph
 
+    private var graphNodes: [KnowledgeNode] { allNodes.filter { $0.kind.showsInGraph } }
+
     private var presentKinds: [NodeKind] {
-        NodeKind.allCases.filter { kind in allNodes.contains { $0.kind == kind } }
+        NodeKind.allCases.filter { kind in
+            kind.showsInGraph && graphNodes.contains { $0.kind == kind }
+        }
     }
 
-    private var capped: Bool { gNodes.count >= nodeCap && allNodes.count > nodeCap }
+    private var capped: Bool { sim.nodes.count >= nodeCap && graphNodes.count > nodeCap }
 
-    /// Cheap change-detector: filters + node count + canvas size. Recompute the
-    /// layout only when one of these changes (not on every drag frame).
     private var currentSignature: String {
         "\(selectedKind?.rawValue ?? "all")|\(hideCoOccurrence)|\(minWeight)"
-        + "|\(focusID?.uuidString ?? "none")|\(allNodes.count)"
-        + "|\(Int(canvasSize.width))x\(Int(canvasSize.height))"
+        + "|\(focusID?.uuidString ?? "none")|\(graphNodes.count)"
+        + "|\(Int(sim.size.width))x\(Int(sim.size.height))"
     }
 
     private func rebuild() {
-        guard canvasSize.width > 0 else { return }
+        guard sim.size.width > 0 else { return }
 
-        let nodes = computeVisibleNodes()
+        var visible = graphNodes
+        if let neighbours = focusNeighbourIDs {
+            visible = visible.filter { neighbours.contains($0.id) }
+        }
+        if let kind = selectedKind {
+            visible = visible.filter { $0.kind == kind || $0.id == focusID }
+        }
+        visible.sort {
+            if $0.mentionCount != $1.mentionCount { return $0.mentionCount > $1.mentionCount }
+            return $0.id.uuidString < $1.id.uuidString
+        }
+        if visible.count > nodeCap { visible = Array(visible.prefix(nodeCap)) }
+
         var index = [UUID: Int]()
-        for (i, n) in nodes.enumerated() { index[n.id] = i }
+        for (i, n) in visible.enumerated() { index[n.id] = i }
 
-        var edges: [GEdge] = []
-        var layoutEdges: [(Int, Int, Double)] = []
+        var simEdges: [(a: Int, b: Int, weight: Int, typed: Bool)] = []
         for edge in allEdges {
             guard edge.weight >= minWeight else { continue }
             let cooc = edge.origin == .cooccurrence
             if hideCoOccurrence && cooc { continue }
             guard let fromID = edge.from?.id, let toID = edge.to?.id,
                   let a = index[fromID], let b = index[toID], a != b else { continue }
-            edges.append(GEdge(a: a, b: b, weight: Double(edge.weight), cooc: cooc))
-            layoutEdges.append((a, b, Double(edge.weight)))
+            simEdges.append((a: a, b: b, weight: edge.weight, typed: !cooc))
         }
 
-        let iterations = nodes.count > 150 ? 250 : 400
-        positions = GraphLayoutEngine.layout(count: nodes.count, edges: layoutEdges,
-                                             size: canvasSize, iterations: iterations)
-        gNodes = nodes
-        gEdges = edges
+        let simNodes = visible.map {
+            (id: $0.id, kind: $0.kind, name: $0.name, mentions: $0.mentionCount)
+        }
+        sim.rebuild(nodes: simNodes, edges: simEdges)
         builtSignature = currentSignature
-        resetView()
 
-        if let id = selectedID, !nodes.contains(where: { $0.id == id }) { selectedID = nil }
+        if let id = selectedID, !visible.contains(where: { $0.id == id }) { selectedID = nil }
     }
 
-    private func computeVisibleNodes() -> [KnowledgeNode] {
-        var nodes = allNodes
-
-        if let neighbours = focusNeighbourIDs {
-            nodes = nodes.filter { neighbours.contains($0.id) }
-        }
-        if let kind = selectedKind {
-            nodes = nodes.filter { $0.kind == kind || $0.id == focusID }
-        }
-        nodes.sort {
-            if $0.mentionCount != $1.mentionCount { return $0.mentionCount > $1.mentionCount }
-            return $0.id.uuidString < $1.id.uuidString
-        }
-        if nodes.count > nodeCap { nodes = Array(nodes.prefix(nodeCap)) }
-        return nodes
-    }
-
-    /// The focused node plus its direct (1-hop) neighbours.
+    /// Focused node plus its direct (1-hop) neighbours — the "Umgebung" / local view.
     private var focusNeighbourIDs: Set<UUID>? {
         guard let focusID, let center = allNodes.first(where: { $0.id == focusID }) else { return nil }
         var ids: Set<UUID> = [focusID]

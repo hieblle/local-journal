@@ -17,7 +17,6 @@ extension NodeKind {
         case .learning: return .green
         case .task:     return .teal
         case .goal:     return .mint
-        case .event:    return .indigo
         case .place:    return .brown
         case .pattern:  return .gray
         }

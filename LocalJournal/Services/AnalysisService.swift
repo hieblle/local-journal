@@ -129,14 +129,14 @@ final class AnalysisService {
         }()
 
         analysis.summary = result.summary
-        analysis.feelings = result.feelings
+        analysis.emotions = result.emotions
+        analysis.feelings = result.feelings          // derived names, for charts/graph
         analysis.topics = result.topics
         analysis.people = result.people
         analysis.keyInsights = result.keyInsights
         analysis.ideas = result.ideas
         analysis.tasks = result.tasks
         analysis.goals = result.goals
-        analysis.events = result.events
         analysis.places = result.places
         analysis.patterns = result.patterns
         analysis.moodScore = result.moodScore
