@@ -21,7 +21,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .memory:    return "Merken"
         case .write:     return "Schreiben"
         case .entries:   return "Einträge"
-        case .prompts:   return "Prompts"
+        case .prompts:   return "Reflexionsfragen"
         case .graph:     return "Wissensgraph"
         case .analysis:  return "Analyse"
         case .settings:  return "Einstellungen"

@@ -21,8 +21,8 @@ Netzwerkverbindung geht an deinen lokalen Ollama-Server.
   **„Kritische Reflexion"** erzeugt aus genau diesem Eintrag kritisch-reflexive
   Anschlussfragen – jede lässt sich in die Sammlung übernehmen oder direkt als
   neuer Eintrag starten.
-- **Journal-Prompt-Bibliothek** – eine anpassbare **Sammlung** von
-  Reflexionsfragen: als **Favorit ⭐︎ markieren**, bearbeiten, archivieren und
+- **Reflexionsfragen** – eine anpassbare **Sammlung** von Fragen (im App-Bereich
+  „Reflexionsfragen"): als **Favorit ⭐︎ markieren**, bearbeiten, archivieren und
   mit einem Klick **einen Eintrag damit starten**. Neue Fragen entstehen
   **manuell** oder werden **aus deinen bisherigen Einträgen generiert** – auf
   kritische Selbstreflexion ausgelegt (Muster, Gefühle, Ziele, blinde Flecken).

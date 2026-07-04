@@ -151,7 +151,7 @@ struct JournalEditorView: View {
     @ViewBuilder
     private var promptMenuContent: some View {
         if availablePrompts.isEmpty {
-            Text("Keine Prompts vorhanden")
+            Text("Keine Reflexionsfragen vorhanden")
         } else {
             ForEach(groupedPrompts, id: \.key) { group in
                 Section(group.key) {

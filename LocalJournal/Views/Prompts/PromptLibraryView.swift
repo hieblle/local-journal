@@ -59,10 +59,10 @@ struct PromptLibraryView: View {
             }
 
             if visiblePrompts.isEmpty {
-                EmptyHint(title: onlyFavorites ? "Keine Favoriten" : "Keine Prompts",
+                EmptyHint(title: onlyFavorites ? "Keine Favoriten" : "Keine Reflexionsfragen",
                           systemImage: "lightbulb",
                           message: onlyFavorites
-                            ? "Markiere Prompts mit dem Stern, um sie hier zu sammeln."
+                            ? "Markiere Fragen mit dem Stern, um sie hier zu sammeln."
                             : "Füge eigene Reflexionsfragen hinzu oder lass dir welche von Ollama vorschlagen.")
             }
 
@@ -101,7 +101,7 @@ struct PromptLibraryView: View {
                 }
             }
         }
-        .navigationTitle("Prompts")
+        .navigationTitle("Reflexionsfragen")
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 Toggle(isOn: $onlyFavorites) {
@@ -298,7 +298,7 @@ private struct PromptEditorSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(isEditing ? "Prompt bearbeiten" : "Neuer Prompt")
+            Text(isEditing ? "Reflexionsfrage bearbeiten" : "Neue Reflexionsfrage")
                 .font(.title3.weight(.semibold))
 
             VStack(alignment: .leading, spacing: 6) {
