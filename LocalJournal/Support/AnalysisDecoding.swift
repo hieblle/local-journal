@@ -135,6 +135,78 @@ private struct RawEmotion: Decodable {
     }
 }
 
+/// Decoded shape of `LLMPromptTemplates.deepReflection`: the deeper reflective
+/// layer (beliefs, needs, triggers, energy, strategies). Tolerant like the main
+/// analysis; every field defaults empty so a partial answer is still usable.
+struct DeepReflectionResult: Decodable {
+    var beliefs: [String] = []
+    var needs: [String] = []
+    var triggers: [String] = []
+    var energyGivers: [String] = []
+    var energyDrainers: [String] = []
+    var strategies: [StrategyNote] = []
+
+    enum CodingKeys: String, CodingKey {
+        case beliefs, needs, triggers, energyGivers, energyDrainers, strategies
+    }
+
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        beliefs = Self.strings(c, .beliefs)
+        needs = Self.strings(c, .needs)
+        triggers = Self.strings(c, .triggers)
+        energyGivers = Self.strings(c, .energyGivers)
+        energyDrainers = Self.strings(c, .energyDrainers)
+        strategies = ((try? c.decode([RawStrategy].self, forKey: .strategies)) ?? [])
+            .compactMap { $0.toNote() }
+    }
+
+    static func parse(_ raw: String) -> DeepReflectionResult {
+        let json = JSONText.extractObject(from: raw)
+        guard let data = json.data(using: .utf8),
+              let result = try? JSONDecoder().decode(DeepReflectionResult.self, from: data) else {
+            return DeepReflectionResult()
+        }
+        return result
+    }
+
+    private static func strings(_ c: KeyedDecodingContainer<CodingKeys>, _ key: CodingKeys) -> [String] {
+        if let array = try? c.decode([String].self, forKey: key) {
+            return array.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+        }
+        if let single = try? c.decode(String.self, forKey: key) {
+            return single.split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+        }
+        return []
+    }
+}
+
+/// Loosely-typed strategy object `{problem, solution}`, tolerating the aliases
+/// `{mistake, fix}` and dropping fully-empty rows.
+private struct RawStrategy: Decodable {
+    var problem: String = ""
+    var solution: String = ""
+
+    enum CodingKeys: String, CodingKey { case problem, solution, mistake, fix }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        problem = (try? c.decode(String.self, forKey: .problem))
+            ?? (try? c.decode(String.self, forKey: .mistake)) ?? ""
+        solution = (try? c.decode(String.self, forKey: .solution))
+            ?? (try? c.decode(String.self, forKey: .fix)) ?? ""
+    }
+
+    func toNote() -> StrategyNote? {
+        let note = StrategyNote(problem: problem, solution: solution)
+        return (note.problem.isEmpty && note.solution.isEmpty) ? nil : note
+    }
+}
+
 /// One `(source) —relation→ (target)` statement from the model, with a type hint
 /// for each endpoint. Tolerant: any missing field decodes to "" so a single
 /// malformed triple never breaks the surrounding list.

@@ -16,6 +16,20 @@ struct EmotionScore: Codable, Hashable, Identifiable {
     }
 }
 
+/// A remembered strategy: something that went wrong (`problem`) and what helped
+/// (`solution`). Stored inline in `EntryAnalysis.strategies`.
+struct StrategyNote: Codable, Hashable, Identifiable {
+    var problem: String
+    var solution: String
+
+    var id: String { (problem + "→" + solution).lowercased() }
+
+    init(problem: String, solution: String) {
+        self.problem = problem.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.solution = solution.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}
+
 /// Structured, locally-generated AI analysis for a single `JournalEntry`.
 /// All fields are filled from Gemma's JSON output (see `AnalysisService`).
 /// This is the canonical per-entry metadata record used by the dashboard,
@@ -59,6 +73,26 @@ final class EntryAnalysis {
 
     /// Recurring patterns the model noticed in this entry (also promoted to `.pattern` nodes).
     var patterns: [String]
+
+    // MARK: Deeper reflective layer (filled by a second, focused analysis pass).
+    // All default to [] so existing stores migrate automatically.
+
+    /// Underlying beliefs / core assumptions behind the behaviour
+    /// (Glaubenssätze), e.g. "Ich muss immer stark sein".
+    var beliefs: [String] = []
+
+    /// Visible or unmet needs (Bedürfnisse), e.g. Anerkennung, Ruhe, Nähe.
+    var needs: [String] = []
+
+    /// Triggers that set off feelings/reactions (Auslöser), e.g. Kritik, Zeitdruck.
+    var triggers: [String] = []
+
+    /// What gave / cost energy in this entry.
+    var energyGivers: [String] = []
+    var energyDrainers: [String] = []
+
+    /// Remembered problem → solution strategies (Fehler & Lösung).
+    var strategies: [StrategyNote] = []
 
     /// Free-text comparison of this entry against the last 7 days.
     var comparisonWithLastWeek: String

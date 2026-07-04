@@ -236,6 +236,8 @@ struct EntryDetailView: View {
             }
         }
 
+        deeperSignals(analysis)
+
         if !analysis.keyInsights.isEmpty {
             SectionCard(title: "Erkenntnisse", systemImage: "sparkle") {
                 ForEach(analysis.keyInsights, id: \.self) { insight in
@@ -391,6 +393,45 @@ struct EntryDetailView: View {
                 }
             case .completed:
                 EmptyView()
+            }
+        }
+    }
+
+    /// The deeper reflective layer (beliefs, needs, triggers, energy, strategies),
+    /// shown only when the second analysis pass found something.
+    @ViewBuilder
+    private func deeperSignals(_ analysis: EntryAnalysis) -> some View {
+        let hasAny = !analysis.beliefs.isEmpty || !analysis.needs.isEmpty || !analysis.triggers.isEmpty
+            || !analysis.energyGivers.isEmpty || !analysis.energyDrainers.isEmpty
+            || !analysis.strategies.isEmpty
+        if hasAny {
+            SectionCard(title: "Tiefere Signale", systemImage: "brain.head.profile") {
+                VStack(alignment: .leading, spacing: 14) {
+                    signal("Glaubenssätze", analysis.beliefs, image: "quote.bubble", tint: .purple)
+                    signal("Bedürfnisse", analysis.needs, image: "leaf", tint: .teal)
+                    signal("Trigger", analysis.triggers, image: "bolt", tint: .orange)
+                    signal("Gibt Energie", analysis.energyGivers, image: "arrow.up.circle", tint: .green)
+                    signal("Kostet Energie", analysis.energyDrainers, image: "arrow.down.circle", tint: .orange)
+                    if !analysis.strategies.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Strategien (Fehler → Lösung)")
+                                .font(.subheadline.weight(.medium))
+                            ForEach(analysis.strategies) { note in
+                                VStack(alignment: .leading, spacing: 2) {
+                                    if !note.problem.isEmpty {
+                                        Label(note.problem, systemImage: "exclamationmark.triangle")
+                                            .font(.callout).foregroundStyle(.orange)
+                                    }
+                                    if !note.solution.isEmpty {
+                                        Label(note.solution, systemImage: "checkmark.circle")
+                                            .font(.callout).foregroundStyle(.green)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                        }
+                    }
+                }
             }
         }
     }

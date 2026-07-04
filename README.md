@@ -29,6 +29,14 @@ Netzwerkverbindung geht an deinen lokalen Ollama-Server.
 - **KI-Analyse nach jedem Eintrag** – Zusammenfassung, **Gefühle mit Intensität
   (0–10)**, Themen, Personen, Orte, Erkenntnisse, Ideen, Vorhaben, Ziele, Muster
   und 7-Tage-Vergleich; strukturiert lokal je Eintrag gespeichert (`EntryAnalysis`).
+  Ein zweiter, fokussierter Durchgang extrahiert die **tiefere Ebene**:
+  Glaubenssätze, Bedürfnisse, Trigger, Energie-Geber/-Räuber und Strategien
+  (Fehler → Lösung).
+- **Einsichten** – ein eigener Bereich, der über alle Einträge verdichtet und
+  deine Leitfragen beantwortet: *welche Muster wiederholen sich, welche Trigger
+  lösen welche Gefühle aus, welche Glaubenssätze & Strategien tauchen auf, welche
+  Learnings kehren wieder, wie habe ich mich verändert.* Dazu selbst formulierte
+  **Werte & Ziele**, die die App per KI mit deinen Handlungen **abgleicht**.
 - **Entitäten** – `PersonEntity` und `TopicEntity` werden einmal angelegt und bei
   erneuter Erwähnung automatisch mit neuen Einträgen verknüpft.
 - **Wissensgraph** – wiederkehrende **Entitäten** (Personen, Themen, Gefühle,

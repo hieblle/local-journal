@@ -46,6 +46,23 @@ und Normalisierung. Siehe [`docs/knowledge-graph.md`](./docs/knowledge-graph.md)
 - [ ] Semantisches Zusammenführen naher Satz-Knoten (Ideen/Ziele/Muster)
 - [ ] Volle Kanten-Provenienz pro Eintrag (saubere Re-Analyse ohne Doppelzählung)
 
+## Einsichten & Selbstreflexion
+
+Der Bereich **Einsichten** verdichtet die Einträge zu wiederkehrenden Mustern,
+Trigger→Gefühl-Verbindungen, Glaubenssätzen, Strategien, Learnings und Veränderung
+über Zeit; dazu selbst formulierte Werte/Ziele mit KI-Abgleich.
+
+- [x] Tiefere Extraktion pro Eintrag (Glaubenssätze, Bedürfnisse, Trigger,
+      Energie-Geber/-Räuber, Strategien) als zweiter, fokussierter Analyse-Durchgang
+- [x] „Einsichten"-Seite: deterministische Aggregation + Graph (Trigger→Gefühle)
+- [x] Selbst formulierte **Werte & Ziele** + KI-Abgleich mit den Einträgen
+- [x] KI-Synthese „Wie habe ich mich über die Zeit verändert?"
+- [ ] Semantische Zusammenführung ähnlicher Muster/Glaubenssätze (statt exakter
+      Textgleichheit) – braucht Embeddings
+- [ ] Zeitverlauf pro Einsicht (wann trat ein Muster zuerst/zuletzt auf?)
+- [ ] Deep-Reflection-Durchgang optional per Einstellung (spart einen Modell-Aufruf)
+- [ ] Werte/Ziele-Abgleich als speicherbarer Report statt nur flüchtig
+
 ## Daten & Entitäten
 
 - [ ] Manuelles Nachbearbeiten erkannter Entitäten

@@ -91,6 +91,87 @@ enum LLMPromptTemplates {
         """
     }
 
+    // MARK: - Deeper reflective layer (second pass)
+
+    /// Extract the deeper psychological layer of a single entry: beliefs, needs,
+    /// triggers, energy, and problem→solution strategies. Kept as a *separate*
+    /// focused prompt so the small local model stays sharp on each task.
+    static func deepReflection(entryTitle: String, entryText: String) -> String {
+        """
+        \(systemPreamble)
+
+        Analysiere den folgenden Journaleintrag auf einer tieferen, reflexiven \
+        Ebene. Gib NUR wieder, was der Text klar hergibt oder deutlich nahelegt – \
+        erfinde nichts und deute nicht über.
+
+        Gib GENAU dieses JSON zurück:
+        {
+          "beliefs": ["innere Grundannahmen/Glaubenssätze hinter dem Verhalten, z. B. 'Ich muss immer stark sein'"],
+          "needs": ["sichtbare oder unerfüllte Bedürfnisse, z. B. Anerkennung, Ruhe, Nähe"],
+          "triggers": ["Auslöser, die Gefühle oder Reaktionen ausgelöst haben, z. B. Kritik, Zeitdruck"],
+          "energyGivers": ["was in diesem Eintrag Energie gegeben hat"],
+          "energyDrainers": ["was Energie gekostet hat"],
+          "strategies": [{"problem": "was schieflief / ein Fehler", "solution": "was geholfen hat / eine Lösung"}]
+        }
+
+        Regeln:
+        - Kurze, prägnante Formulierungen. Höchstens 3 Einträge pro Liste.
+        - "beliefs" sind innere Grundannahmen – KEINE bloßen Themen.
+        - "strategies" nur, wenn der Text einen Fehler/ein Problem UND einen \
+          Umgang/eine Lösung erkennen lässt.
+        - Leere Liste [] verwenden, wenn nichts Klares erkennbar ist.
+
+        Titel: \(entryTitle.isEmpty ? "(kein Titel)" : entryTitle)
+        Eintrag:
+        \"\"\"
+        \(entryText)
+        \"\"\"
+        """
+    }
+
+    /// Narrative synthesis: how the person changed between older and recent
+    /// entries. Returns `{ "text": "..." }`.
+    static func reflectOnChange(earlySummaries: [String], recentSummaries: [String]) -> String {
+        """
+        \(systemPreamble)
+
+        Vergleiche die FRÜHEREN mit den JÜNGEREN Einträgen und beschreibe knapp \
+        und konkret, wie sich die Person über die Zeit verändert hat: Stimmung, \
+        Themen, Umgang mit Schwierigkeiten, wiederkehrende Muster. Wertschätzend, \
+        nicht diagnostisch. 3–5 Sätze.
+
+        Gib GENAU dieses JSON zurück:
+        { "text": "..." }
+
+        Frühere Einträge:
+        \(earlySummaries.isEmpty ? "(keine)" : earlySummaries.map { "- \($0)" }.joined(separator: "\n"))
+        Jüngere Einträge:
+        \(recentSummaries.isEmpty ? "(keine)" : recentSummaries.map { "- \($0)" }.joined(separator: "\n"))
+        """
+    }
+
+    /// Compare the person's written values / goals against how they actually
+    /// acted in recent entries. Returns `{ "text": "..." }`.
+    static func valueAlignment(values: [String], goals: [String], recentSummaries: [String]) -> String {
+        """
+        \(systemPreamble)
+
+        Gleiche die selbst formulierten WERTE und ZIELE der Person mit ihren \
+        tatsächlichen Handlungen in den letzten Einträgen ab. Benenne behutsam, \
+        wo Handeln und Werte/Ziele zusammenpassen und wo nicht, und gib 1–2 \
+        konkrete, wohlwollende Impulse. Nicht urteilend, keine Ferndiagnose. \
+        4–6 Sätze.
+
+        Gib GENAU dieses JSON zurück:
+        { "text": "..." }
+
+        Werte: \(csv(values))
+        Ziele: \(csv(goals))
+        Letzte Einträge:
+        \(recentSummaries.isEmpty ? "(keine)" : recentSummaries.map { "- \($0)" }.joined(separator: "\n"))
+        """
+    }
+
     // MARK: - Individual building blocks
 
     /// Generate new, **critically reflective** journal prompts grounded in the

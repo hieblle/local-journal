@@ -53,6 +53,10 @@ final class AnalysisService {
             // must not invalidate the primary analysis.
             await addWeeklyComparison(to: entry, using: service)
 
+            // Best-effort deeper reflective layer (beliefs, needs, triggers,
+            // energy, strategies). Also non-fatal.
+            await addDeepReflection(to: entry, using: service)
+
             entry.analysisStatus = .completed
             lastErrorMessage = nil
             save()
@@ -161,6 +165,69 @@ final class AnalysisService {
             if out.count >= limit { break }
         }
         return out
+    }
+
+    // MARK: - Deeper reflective layer + on-demand syntheses
+
+    /// Second focused pass that fills the deeper reflective fields. Non-fatal:
+    /// any failure simply leaves those fields empty.
+    private func addDeepReflection(to entry: JournalEntry, using service: OllamaService) async {
+        let prompt = LLMPromptTemplates.deepReflection(entryTitle: entry.title, entryText: entry.text)
+        guard let raw = try? await service.generate(prompt: prompt) else { return }
+        let result = DeepReflectionResult.parse(raw)
+        guard let analysis = entry.analysis else { return }
+        analysis.beliefs = result.beliefs
+        analysis.needs = result.needs
+        analysis.triggers = result.triggers
+        analysis.energyGivers = result.energyGivers
+        analysis.energyDrainers = result.energyDrainers
+        analysis.strategies = result.strategies
+    }
+
+    /// On-demand narrative: how the person changed between older and recent
+    /// entries. Empty string on any failure (offline / no data).
+    func reflectOnChange(settings: AppSettings) async -> String {
+        let service = OllamaService(baseURL: settings.ollamaBaseURL, model: settings.modelName)
+        guard await service.isReachable() else { return "" }
+
+        let ascending = FetchDescriptor<JournalEntry>(sortBy: [SortDescriptor(\.date, order: .forward)])
+        guard let entries = try? context.fetch(ascending) else { return "" }
+        let summaries = entries.compactMap { $0.analysis?.summary }.filter { !$0.isEmpty }
+        guard summaries.count >= 4 else { return "" }
+
+        let early = Array(summaries.prefix(6))
+        let recent = Array(summaries.suffix(6))
+        let prompt = LLMPromptTemplates.reflectOnChange(earlySummaries: early, recentSummaries: recent)
+        return await decodeText(from: service, prompt: prompt, key: "text")
+    }
+
+    /// On-demand narrative: align the user's written values / goals with how they
+    /// actually acted recently. Empty string on any failure.
+    func checkValueAlignment(values: [String], goals: [String], settings: AppSettings) async -> String {
+        let service = OllamaService(baseURL: settings.ollamaBaseURL, model: settings.modelName)
+        guard await service.isReachable() else { return "" }
+        guard !values.isEmpty || !goals.isEmpty else { return "" }
+
+        var descriptor = FetchDescriptor<JournalEntry>(sortBy: [SortDescriptor(\.date, order: .reverse)])
+        descriptor.fetchLimit = 12
+        let recent = (try? context.fetch(descriptor)) ?? []
+        let summaries = recent.compactMap { $0.analysis?.summary }.filter { !$0.isEmpty }
+        guard !summaries.isEmpty else { return "" }
+
+        let prompt = LLMPromptTemplates.valueAlignment(values: values, goals: goals, recentSummaries: summaries)
+        return await decodeText(from: service, prompt: prompt, key: "text")
+    }
+
+    /// Decode a single `{ "<key>": "..." }` text field from a model response.
+    private func decodeText(from service: OllamaService, prompt: String, key: String) async -> String {
+        guard let raw = try? await service.generate(prompt: prompt) else { return "" }
+        let json = JSONText.extractObject(from: raw)
+        guard let data = json.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let text = object[key] as? String else {
+            return ""
+        }
+        return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     // MARK: - Applying results
