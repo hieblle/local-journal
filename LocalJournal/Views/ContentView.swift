@@ -53,9 +53,12 @@ struct ContentView: View {
     @State private var selection: AppSection? = .dashboard
     @State private var analysis: AnalysisService?
 
-    /// A reflection prompt handed from the Prompts page to the editor so the
-    /// user can start writing straight from a question.
+    /// A reflection prompt handed from the Reflexionsfragen page to the editor so
+    /// the user can start writing straight from a question.
     @State private var pendingPrompt: String?
+
+    /// A template handed from the library to the editor.
+    @State private var pendingTemplate: EntryTemplate?
 
     var body: some View {
         Group {
@@ -105,15 +108,24 @@ struct ContentView: View {
         selection = .write
     }
 
+    /// Switch to the editor and pre-load it from a template.
+    private func beginTemplate(_ template: EntryTemplate) {
+        pendingTemplate = template
+        selection = .write
+    }
+
     @ViewBuilder
     private func detail(for section: AppSection) -> some View {
         switch section {
         case .dashboard: DashboardView(goToSection: { selection = $0 }, onStartWriting: startWriting)
         case .memory:    MemoryBoardView()
         case .write:     JournalEditorView(initialPrompt: pendingPrompt,
-                                           onConsumePrompt: { pendingPrompt = nil })
+                                           onConsumePrompt: { pendingPrompt = nil },
+                                           initialTemplate: pendingTemplate,
+                                           onConsumeTemplate: { pendingTemplate = nil })
         case .entries:   EntryListView()
-        case .prompts:   PromptLibraryView(onStartWriting: startWriting)
+        case .prompts:   PromptLibraryView(onStartWriting: startWriting,
+                                           onStartTemplate: beginTemplate)
         case .insights:  InsightsView()
         case .graph:     KnowledgeGraphView()
         case .analysis:  AnalysisView()

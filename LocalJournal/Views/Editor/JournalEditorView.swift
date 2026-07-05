@@ -9,11 +9,17 @@ struct JournalEditorView: View {
     var initialPrompt: String? = nil
     /// Called once the initial prompt has been consumed, so the parent can clear it.
     var onConsumePrompt: () -> Void = {}
+    /// Optional template to preload (fills title + a scaffold of hints/questions).
+    var initialTemplate: EntryTemplate? = nil
+    /// Called once the initial template has been consumed.
+    var onConsumeTemplate: () -> Void = {}
 
     @Environment(\.modelContext) private var context
     @Environment(AnalysisService.self) private var analysis
 
     @Query(sort: \JournalPrompt.createdAt, order: .reverse) private var prompts: [JournalPrompt]
+    @Query(sort: [SortDescriptor(\EntryTemplate.sortIndex), SortDescriptor(\EntryTemplate.createdAt)])
+    private var templates: [EntryTemplate]
     @Query private var settingsList: [AppSettings]
 
     @State private var title = ""
@@ -58,6 +64,7 @@ struct JournalEditorView: View {
         .navigationTitle("Neuer Eintrag")
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
+                templateMenu
                 promptMenu
                 Button {
                     save()
@@ -149,6 +156,36 @@ struct JournalEditorView: View {
     }
 
     @ViewBuilder
+    private var templateMenu: some View {
+        if !templates.isEmpty {
+            Menu {
+                ForEach(templates) { template in
+                    Button {
+                        applyTemplate(template)
+                    } label: {
+                        Label(template.name, systemImage: template.cadence.systemImage)
+                    }
+                }
+            } label: {
+                Label("Vorlage", systemImage: "doc.text")
+            }
+        }
+    }
+
+    /// Fill the editor from a template. If the entry is still empty the scaffold
+    /// replaces it; otherwise it is appended so nothing is lost.
+    private func applyTemplate(_ template: EntryTemplate) {
+        if title.isEmpty { title = template.name }
+        let scaffold = template.scaffoldText()
+        if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            text = scaffold
+        } else {
+            text += "\n\n" + scaffold
+        }
+        activePrompt = nil
+    }
+
+    @ViewBuilder
     private var promptMenuContent: some View {
         if availablePrompts.isEmpty {
             Text("Keine Reflexionsfragen vorhanden")
@@ -237,7 +274,13 @@ struct JournalEditorView: View {
         timer.durationMinutes = settings.timerDurationMinutes
         timer.reset()
 
-        // Preload a reflection prompt handed over from the Prompts page.
+        // Preload a template (title + scaffold) handed over from the library.
+        if let initialTemplate {
+            applyTemplate(initialTemplate)
+            onConsumeTemplate()
+        }
+
+        // Preload a reflection prompt handed over from the Reflexionsfragen page.
         if let initialPrompt, !initialPrompt.isEmpty {
             activePrompt = initialPrompt
             onConsumePrompt()

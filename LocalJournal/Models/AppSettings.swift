@@ -26,6 +26,10 @@ final class AppSettings {
     /// One-time guard so seed prompts are only inserted on first launch.
     var didSeedPrompts: Bool
 
+    /// One-time guard so seed templates are only inserted once. Defaulted for
+    /// safe migration of stores created before templates existed.
+    var didSeedTemplates: Bool = false
+
     init(
         id: UUID = UUID(),
         ollamaBaseURL: String = AppSettings.defaultBaseURL,
@@ -33,7 +37,8 @@ final class AppSettings {
         autoAnalyze: Bool = true,
         timerEnabledByDefault: Bool = false,
         timerDurationMinutes: Int = 10,
-        didSeedPrompts: Bool = false
+        didSeedPrompts: Bool = false,
+        didSeedTemplates: Bool = false
     ) {
         self.id = id
         self.ollamaBaseURL = ollamaBaseURL
@@ -42,6 +47,7 @@ final class AppSettings {
         self.timerEnabledByDefault = timerEnabledByDefault
         self.timerDurationMinutes = timerDurationMinutes
         self.didSeedPrompts = didSeedPrompts
+        self.didSeedTemplates = didSeedTemplates
     }
 
     static let defaultBaseURL = "http://localhost:11434"
