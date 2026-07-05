@@ -121,6 +121,8 @@ private struct SettingsForm: View {
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
+        .background(Color.appBackground)
         .task {
             await monitor.refresh(baseURL: settings.ollamaBaseURL, model: settings.modelName)
         }

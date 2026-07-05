@@ -125,27 +125,17 @@ struct StatCard: View {
     }
 }
 
-/// A titled container card used to group content on the dashboard / analysis.
+/// A titled container card used to group content across the app. Now a thin
+/// wrapper over `PanelCard` so every page shares the dashboard's warm editorial
+/// look (uppercase, letter-spaced label; soft geometry). `systemImage` is kept
+/// for source compatibility but no longer drawn — the cleaner label reads better.
 struct SectionCard<Content: View>: View {
     let title: String
-    var systemImage: String?
+    var systemImage: String? = nil
     @ViewBuilder var content: () -> Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 6) {
-                if let systemImage {
-                    Image(systemName: systemImage)
-                        .foregroundStyle(.secondary)
-                }
-                Text(title)
-                    .font(.headline)
-            }
-            content()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(Color.cardSurface, in: RoundedRectangle(cornerRadius: 12))
+        PanelCard(label: title) { content() }
     }
 }
 
