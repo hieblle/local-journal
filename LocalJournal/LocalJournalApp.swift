@@ -22,6 +22,7 @@ struct LocalJournalApp: App {
             KnowledgeEdge.self,
             GuidingPrinciple.self,
             EntryTemplate.self,
+            PeriodicReport.self,
         ])
         // Persistent, local-only configuration. No CloudKit, no sync.
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)

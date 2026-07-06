@@ -83,8 +83,11 @@ Trigger→Gefühl-Verbindungen, Glaubenssätzen, Strategien, Learnings und Verä
 
 ## KI-Funktionen
 
-- [ ] Automatische **Wochenzusammenfassungen** (Modell `WeeklySummary` ist bereits
-      angelegt) als geplanter Hintergrund-Job
+- [x] Automatische **Wochen- & Monatsberichte** – umgesetzt im Bereich „Berichte"
+      (`PeriodicReport` + `ReportBuilder` + `AnalysisService.generateReport`):
+      deterministische Kennzahlen plus best-effort LLM-Rückblick, automatisch für
+      abgeschlossene Zeiträume beim Start und on-demand für den laufenden.
+      Nächster Schritt: echter geplanter Hintergrund-Job statt Start-Trigger
 - [ ] Strukturierte Ausgaben über Ollama-JSON-Schema statt nur `format: "json"`
 - [ ] Auswahl mehrerer Modelle / Profile (schnell vs. gründlich)
 - [ ] Re-Analyse-Warteschlange mit Fortschrittsanzeige

@@ -71,6 +71,28 @@ enum ResilienceCalculator {
         )
     }
 
+    /// Score a **specific** set of period analyses against an explicit previous
+    /// period and a longer baseline. Used by weekly/monthly reports, whose
+    /// windows are aligned to the report period rather than to "now".
+    /// `deltaThisMonth` here means "delta vs. the previous period".
+    static func score(current: [EntryAnalysis],
+                      previous: [EntryAnalysis],
+                      baseline: [EntryAnalysis]) -> ResilienceScore {
+        let cur = subscores(current)
+        let prev = subscores(previous)
+        let base = subscores(baseline)
+        let delta = (current.isEmpty || previous.isEmpty) ? 0 : cur.overall - prev.overall
+        return ResilienceScore(
+            overall: cur.overall,
+            emotionalStability: cur.emotional,
+            selfEfficacy: cur.efficacy,
+            physicalHealth: cur.physical,
+            deltaThisMonth: delta,
+            sixMonthAverage: base.overall,
+            sampleSize: current.count
+        )
+    }
+
     // MARK: - Sub-scores
 
     private struct Sub { var overall: Int; var emotional: Int; var efficacy: Int; var physical: Int }

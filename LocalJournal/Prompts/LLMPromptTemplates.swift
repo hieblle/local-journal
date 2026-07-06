@@ -386,6 +386,92 @@ enum LLMPromptTemplates {
         """
     }
 
+    // MARK: - Weekly / monthly report
+
+    /// Build a warm, grounded **weekly or monthly report** from already-computed,
+    /// deterministic metrics plus the period's entry summaries. The numbers are
+    /// pre-computed on purpose — the model must not invent figures, only narrate
+    /// them. Returns the narrative layer (`PeriodReportNarrative`).
+    static func periodReport(metrics m: ReportMetrics) -> String {
+        let unit = m.kind.unitLabel
+        let topics = csv(m.topTopics.map { "\($0.label) (\($0.count)×)" })
+        let newTopics = csv(m.newTopics)
+        let feelings = csv(m.topFeelings.map { "\($0.label) (\($0.count)×)" })
+        let people = csv(m.topPeople.map(\.label))
+        let givers = csv(m.energyGivers.map(\.label))
+        let drainers = csv(m.energyDrainers.map(\.label))
+        let strategies = m.strategies.isEmpty
+            ? "(keine)"
+            : m.strategies.map { "\($0.problem) → \($0.solution)" }.joined(separator: "; ")
+        let summaries = m.summaries.isEmpty
+            ? "(keine)"
+            : m.summaries.map { "- \($0)" }.joined(separator: "\n")
+
+        return """
+        \(systemPreamble)
+
+        Erstelle einen persönlichen \(m.kind.reportTitle) für den Zeitraum \
+        \(rangeDescription(m)) auf Basis der folgenden, bereits lokal berechneten \
+        Kennzahlen und Eintrags-Zusammenfassungen. Nutze AUSSCHLIESSLICH diese \
+        Informationen – erfinde keine Fakten und keine Zahlen. Schreibe warm, \
+        konkret und ermutigend, in der zweiten Person ("du"), nicht diagnostisch. \
+        Beziehe dich auf konkrete Themen, Gefühle und Muster.
+
+        Gib GENAU dieses JSON zurück:
+        {
+          "narrative": "3-5 Sätze: ehrlicher, wertschätzender Rückblick auf den Zeitraum",
+          "trajectory": "2-4 Sätze: was sich über den Zeitraum entwickelt oder verändert hat (Stimmung, Themen, Umgang mit Schwierigem)",
+          "highlights": ["max. 3 kurze Höhepunkte oder Wendepunkte"],
+          "focus": "1 Satz: ein sinnvoller, machbarer Fokus für die/den nächste(n) \(unit)",
+          "recommendations": ["2-3 offene, reflexive Fragen oder Impulse für die/den nächste(n) \(unit)"]
+        }
+
+        Kennzahlen:
+        - Einträge: \(m.entryCount) (Vorperiode: \(m.previousEntryCount)), an \(m.daysWritten) Tag(en), \(m.wordCount) Wörter
+        - Resilienz-Score: \(m.resilience.overall)/100 (Veränderung ggü. Vorperiode: \(signed(m.resilience.deltaThisMonth)))
+        - Stimmung (Skala -1 bis +1): Durchschnitt \(twoDecimals(m.averageMood)), Verlauf von \(twoDecimals(m.moodStart)) zu \(twoDecimals(m.moodEnd))
+        - Häufige Themen: \(topics)
+        - Neue Themen ggü. Vorperiode: \(newTopics)
+        - Häufige Gefühle: \(feelings)
+        - Wichtige Personen: \(people)
+        - Energiegeber: \(givers)
+        - Energieräuber: \(drainers)
+        - Ziele: \(csv(m.goals))
+        - Learnings: \(csv(m.learnings))
+        - Muster: \(csv(m.patterns))
+        - Glaubenssätze: \(csv(m.beliefs))
+        - Trigger: \(csv(m.triggers))
+        - Bedürfnisse: \(csv(m.needs))
+        - Strategien (Problem → Lösung): \(strategies)
+
+        Eintrags-Zusammenfassungen:
+        \(summaries)
+        """
+    }
+
+    /// Human-readable period range for the report prompt.
+    private static func rangeDescription(_ m: ReportMetrics) -> String {
+        switch m.kind {
+        case .monthly:
+            return m.periodStart.formatted(.dateTime.month(.wide).year())
+        case .weekly:
+            let last = Calendar.current.date(byAdding: .day, value: -1, to: m.periodEnd) ?? m.periodEnd
+            let start = m.periodStart.formatted(.dateTime.day().month())
+            let end = last.formatted(.dateTime.day().month().year())
+            return "\(start) – \(end)"
+        }
+    }
+
+    /// "+3" / "-2" / "±0" for a signed integer delta.
+    private static func signed(_ value: Int) -> String {
+        value > 0 ? "+\(value)" : (value < 0 ? "\(value)" : "±0")
+    }
+
+    /// Two-decimal string with a dot separator, locale-independent.
+    private static func twoDecimals(_ value: Double) -> String {
+        String(format: "%.2f", value)
+    }
+
     /// Produce short dashboard insights from the most recent analyses.
     static func dashboardInsights(recentSummaries: [String],
                                   recentFeelings: [String],

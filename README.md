@@ -49,6 +49,19 @@ Netzwerkverbindung geht an deinen lokalen Ollama-Server.
   lösen welche Gefühle aus, welche Glaubenssätze & Strategien tauchen auf, welche
   Learnings kehren wieder, wie habe ich mich verändert.* Dazu selbst formulierte
   **Werte & Ziele**, die die App per KI mit deinen Handlungen **abgleicht**.
+- **Berichte** – automatische **Wochen- und Monatsberichte**. Sobald eine Woche
+  oder ein Monat abgeschlossen ist, entsteht beim nächsten Start ein Rückblick;
+  den laufenden Zeitraum erstellst du per Knopfdruck („Diese Woche" / „Dieser
+  Monat"). Jeder Bericht kombiniert **lokal berechnete, deterministische
+  Kennzahlen** – Resilienz-Score (mit Veränderung ggü. Vorperiode),
+  Stimmungsverlauf, häufige & neue Themen, Gefühle, Personen, Energie-Geber/
+  -Räuber, Ziele, Learnings, Muster, Glaubenssätze/Trigger/Bedürfnisse und
+  Strategien – mit einem **erzählerischen Rückblick des lokalen LLM** (Rückblick,
+  Entwicklung/Veränderung, Höhepunkte, ein Fokus und reflexive Impulse für den
+  nächsten Zeitraum, aus denen sich direkt ein neuer Eintrag starten lässt). Die
+  Zahlen entstehen deterministisch (`Support/ReportBuilder.swift`); das LLM
+  formuliert nur den Text und ist best-effort – ist Ollama offline, bleiben die
+  Kennzahlen trotzdem erhalten und der Text lässt sich später nachziehen.
 - **Markdown-Spiegel** – optional wird jeder Eintrag zusätzlich als **`.md`-Datei**
   in einem selbst gewählten Ordner gespeichert (z. B. ein Obsidian-Vault): mit
   YAML-Front-Matter (Datum, Stimmung, Themen/Personen/Gefühle), Zusammenfassung
@@ -104,7 +117,8 @@ Klare Trennung von UI, Datenmodell und LLM-Logik:
 ```
 LocalJournal/
 ├─ Models/        SwiftData-Modelle (JournalEntry, EntryAnalysis, JournalPrompt,
-│                 PersonEntity, TopicEntity, WeeklySummary, AppSettings,
+│                 PersonEntity, TopicEntity, WeeklySummary, PeriodicReport,
+│                 GuidingPrinciple, EntryTemplate, AppSettings,
 │                 KnowledgeNode, KnowledgeEdge)
 ├─ Services/      OllamaService (Netzwerk) · AnalysisService (Pipeline)
 ├─ Prompts/       LLMPromptTemplates.swift  (technische Prompts für Ollama)
