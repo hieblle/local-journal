@@ -49,6 +49,11 @@ final class JournalEntry {
     /// Word count is denormalised so dashboard / analysis stats stay cheap.
     var wordCount: Int
 
+    /// Filename of this entry's mirrored Markdown file (if the Markdown mirror is
+    /// enabled). Stored so edits overwrite the same file. Empty until first write;
+    /// defaulted for safe migration.
+    var mirrorFileName: String = ""
+
     /// Backing store for `analysisStatus` (SwiftData persists the raw string).
     private var analysisStatusRaw: String
 

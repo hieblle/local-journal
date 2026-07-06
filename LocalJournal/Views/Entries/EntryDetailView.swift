@@ -71,6 +71,7 @@ struct EntryDetailView: View {
         .toolbar { toolbarContent }
         .confirmationDialog("Diesen Eintrag löschen?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
             Button("Löschen", role: .destructive) {
+                MarkdownMirror.removeEntry(entry, settings: settings)
                 context.delete(entry)
                 try? context.save()
                 dismiss()
@@ -494,6 +495,9 @@ struct EntryDetailView: View {
         entry.refreshWordCount()
         entry.updatedAt = .now
         try? context.save()
+
+        // Keep the mirrored Markdown file in sync with the edit.
+        MarkdownMirror.writeEntry(entry, settings: settings)
 
         isEditing = false
 

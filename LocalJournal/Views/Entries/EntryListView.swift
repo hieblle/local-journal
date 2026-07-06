@@ -7,6 +7,7 @@ struct EntryListView: View {
     @Environment(\.modelContext) private var context
 
     @Query(sort: \JournalEntry.date, order: .reverse) private var entries: [JournalEntry]
+    @Query private var settingsList: [AppSettings]
 
     var body: some View {
         Group {
@@ -30,7 +31,9 @@ struct EntryListView: View {
     }
 
     private func delete(at offsets: IndexSet) {
+        let settings = settingsList.first ?? AppSettings()
         for index in offsets {
+            MarkdownMirror.removeEntry(entries[index], settings: settings)
             context.delete(entries[index])
         }
         try? context.save()

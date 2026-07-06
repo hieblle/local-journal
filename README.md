@@ -47,6 +47,12 @@ Netzwerkverbindung geht an deinen lokalen Ollama-Server.
   lösen welche Gefühle aus, welche Glaubenssätze & Strategien tauchen auf, welche
   Learnings kehren wieder, wie habe ich mich verändert.* Dazu selbst formulierte
   **Werte & Ziele**, die die App per KI mit deinen Handlungen **abgleicht**.
+- **Markdown-Spiegel** – optional wird jeder Eintrag zusätzlich als **`.md`-Datei**
+  in einem selbst gewählten Ordner gespeichert (z. B. ein Obsidian-Vault): mit
+  YAML-Front-Matter (Datum, Stimmung, Themen/Personen/Gefühle), Zusammenfassung
+  und Text. Bearbeiten aktualisiert die Datei, Löschen entfernt sie – einseitig,
+  die SwiftData-DB bleibt die Quelle der Wahrheit. In den Einstellungen einmalig
+  den Ordner wählen (Sandbox-Zugriff via Security-Scoped Bookmark).
 - **Entitäten** – `PersonEntity` und `TopicEntity` werden einmal angelegt und bei
   erneuter Erwähnung automatisch mit neuen Einträgen verknüpft.
 - **Wissensgraph** – wiederkehrende **Entitäten** (Personen, Themen, Gefühle,

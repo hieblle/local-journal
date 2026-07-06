@@ -30,6 +30,14 @@ final class AppSettings {
     /// safe migration of stores created before templates existed.
     var didSeedTemplates: Bool = false
 
+    /// Security-scoped bookmark to the user-chosen folder where entries are
+    /// mirrored as Markdown files. `nil` = mirror disabled. Defaulted for
+    /// safe migration.
+    var mirrorFolderBookmark: Data? = nil
+
+    /// Human-readable path of the mirror folder (for display in Settings).
+    var mirrorFolderPath: String = ""
+
     init(
         id: UUID = UUID(),
         ollamaBaseURL: String = AppSettings.defaultBaseURL,

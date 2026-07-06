@@ -302,6 +302,9 @@ struct JournalEditorView: View {
         context.insert(entry)
         try? context.save()
 
+        // Mirror to Markdown right away (analysis, if any, rewrites it later).
+        MarkdownMirror.writeEntry(entry, settings: settings)
+
         if settings.autoAnalyze {
             let captured = entry
             let currentSettings = settings

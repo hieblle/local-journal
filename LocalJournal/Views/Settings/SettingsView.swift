@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import AppKit
 
 /// App settings: local Ollama configuration, editor defaults, and privacy info.
 /// Reachable both from the sidebar and the standard macOS Settings window (⌘,).
@@ -32,6 +33,7 @@ private struct SettingsForm: View {
     @State private var loadingModels = false
     @State private var pendingResult: String?
     @State private var isAnalyzingPending = false
+    @State private var isSyncing = false
 
     var body: some View {
         Form {
@@ -112,6 +114,52 @@ private struct SettingsForm: View {
                 }
             }
 
+            Section("Markdown-Ordner") {
+                if settings.mirrorFolderBookmark == nil {
+                    Text("Speichere jeden Eintrag zusätzlich als **.md-Datei** in einem Ordner deiner Wahl (z. B. ein Obsidian-Vault). Einmal wählen – danach wird automatisch synchronisiert.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Button {
+                        chooseMirrorFolder()
+                    } label: {
+                        Label("Ordner wählen …", systemImage: "folder.badge.plus")
+                    }
+                } else {
+                    LabeledContent("Ordner") {
+                        Text(settings.mirrorFolderPath)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                    HStack {
+                        Button {
+                            MarkdownMirror.openInFinder(settings)
+                        } label: {
+                            Label("Im Finder öffnen", systemImage: "folder")
+                        }
+                        Button {
+                            syncMirrorNow()
+                        } label: {
+                            if isSyncing {
+                                ProgressView().controlSize(.small)
+                            } else {
+                                Label("Jetzt synchronisieren", systemImage: "arrow.triangle.2.circlepath")
+                            }
+                        }
+                        .disabled(isSyncing)
+                        Button("Ordner ändern …") { chooseMirrorFolder() }
+                        Spacer()
+                        Button(role: .destructive) { disableMirror() } label: {
+                            Label("Deaktivieren", systemImage: "xmark.circle")
+                        }
+                    }
+                    Text("Neue und bearbeitete Einträge werden automatisch geschrieben, gelöschte entfernt. Rein einseitig (Bearbeiten passiert in der App).")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             Section("Datenschutz") {
                 Label("Alle Daten bleiben lokal auf diesem Mac.", systemImage: "lock.shield")
                     .font(.callout)
@@ -141,6 +189,38 @@ private struct SettingsForm: View {
         let service = OllamaService(baseURL: settings.ollamaBaseURL, model: settings.modelName)
         availableModels = (try? await service.availableModels()) ?? []
         loadingModels = false
+    }
+
+    // MARK: - Markdown mirror
+
+    private func chooseMirrorFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Ordner wählen"
+        panel.message = "Ordner für die Markdown-Spiegelung deiner Einträge wählen"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        guard let bookmark = try? url.bookmarkData(options: [.withSecurityScope],
+                                                   includingResourceValuesForKeys: nil,
+                                                   relativeTo: nil) else { return }
+        settings.mirrorFolderBookmark = bookmark
+        settings.mirrorFolderPath = url.path(percentEncoded: false)
+        try? context.save()
+        syncMirrorNow()
+    }
+
+    private func syncMirrorNow() {
+        isSyncing = true
+        let entries = (try? context.fetch(FetchDescriptor<JournalEntry>())) ?? []
+        MarkdownMirror.syncAll(entries, settings: settings)
+        isSyncing = false
+    }
+
+    private func disableMirror() {
+        settings.mirrorFolderBookmark = nil
+        settings.mirrorFolderPath = ""
+        try? context.save()
     }
 
     private func analyzePending() async {

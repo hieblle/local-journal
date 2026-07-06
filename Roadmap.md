@@ -73,9 +73,13 @@ Trigger→Gefühl-Verbindungen, Glaubenssätzen, Strategien, Learnings und Verä
 
 ## Export & Backup
 
-- [ ] Exportfunktion (Markdown / JSON / PDF)
-- [ ] Einzelne Einträge oder Zeiträume exportieren
-- [ ] Lokales Backup / Wiederherstellung
+- [x] **Markdown-Spiegel**: jeder Eintrag als `.md` in einem selbst gewählten
+      Ordner, automatisch bei Speichern/Bearbeiten/Löschen (einseitig,
+      Security-Scoped Bookmark)
+- [ ] PDF-Export
+- [ ] Einzelne Einträge oder Zeiträume gezielt exportieren
+- [ ] Zwei-Wege-Sync / Re-Import aus den Markdown-Dateien
+- [ ] Vollständiges lokales Backup / Wiederherstellung (inkl. Analysen & Graph)
 
 ## KI-Funktionen
 

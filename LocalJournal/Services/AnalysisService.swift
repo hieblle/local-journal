@@ -60,6 +60,9 @@ final class AnalysisService {
             entry.analysisStatus = .completed
             lastErrorMessage = nil
             save()
+
+            // Refresh the Markdown mirror so the file carries the new analysis.
+            MarkdownMirror.writeEntry(entry, settings: settings)
         } catch let error as OllamaError {
             // A transport drop mid-run still leaves the entry recoverable.
             entry.analysisStatus = (error == .notRunning || error == .timedOut) ? .pending : .failed
