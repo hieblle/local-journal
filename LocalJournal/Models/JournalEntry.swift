@@ -54,6 +54,11 @@ final class JournalEntry {
     /// defaulted for safe migration.
     var mirrorFileName: String = ""
 
+    /// Self-reported mood from the quick check-in at write time: 0 = not set,
+    /// 1 (schwer) … 5 (super). Complements the AI-derived `EntryAnalysis.moodScore`.
+    /// Defaulted for safe migration.
+    var selfMood: Int = 0
+
     /// Backing store for `analysisStatus` (SwiftData persists the raw string).
     private var analysisStatusRaw: String
 

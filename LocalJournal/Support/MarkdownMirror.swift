@@ -113,6 +113,10 @@ enum MarkdownMirror {
         lines.append("words: \(entry.wordCount)")
         lines.append("status: \(entry.analysisStatus.rawValue)")
 
+        if entry.selfMood > 0 {
+            lines.append("mood_self: \"\(MoodScale.emoji(entry.selfMood)) \(MoodScale.label(entry.selfMood)) (\(entry.selfMood)/5)\"")
+        }
+
         if let analysis = entry.analysis {
             lines.append("mood: \(String(format: "%.2f", analysis.moodScore))")
             appendList(&lines, key: "topics", analysis.topics)

@@ -94,7 +94,13 @@ Trigger→Gefühl-Verbindungen, Glaubenssätzen, Strategien, Learnings und Verä
 
 ## UX
 
-- [ ] Markdown-Formatierung im Editor
+- [x] Markdown-Formatierung im Editor – Werkzeugleiste (fett/kursiv/unterstrichen/
+      durchgestrichen, Überschrift, Listen, Zitat) über einen NSTextView-basierten
+      Editor; der Text ist Markdown-Quelltext und landet 1:1 in der `.md`-Datei
+- [ ] **Sprachaufnahme → Transkription** – der Mikrofon-Button im Editor ist
+      bereits vorhanden (noch ohne Funktion). Anzubinden an eine
+      **Transkriptions-API**; passend zur lokalen Ausrichtung idealerweise ein
+      **lokales** Modell (z. B. WhisperKit / whisper.cpp) statt einer Cloud-API
 - [ ] Tag-/Wochenansicht (Kalender)
 - [ ] Tastatur-Navigation & Shortcuts ausbauen
 - [ ] Anhänge (Bilder) – weiterhin rein lokal

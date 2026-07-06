@@ -1,15 +1,16 @@
 import SwiftUI
 import SwiftData
 
-/// Write a new journal entry. On save the entry is persisted locally first;
-/// AI analysis is then kicked off best-effort (and degrades to "pending" when
-/// Ollama is unavailable).
+/// Write a new journal entry. The centre is a calm, Apple-Journal-like writing
+/// surface; a collapsible **Einblicke** panel sits on the left and a collapsible
+/// **KI-Begleiter** chat on the right. On save the entry is persisted locally
+/// first; AI analysis is then kicked off best-effort.
 struct JournalEditorView: View {
     /// Optional reflection prompt to preload (handed over from the Prompts page).
     var initialPrompt: String? = nil
     /// Called once the initial prompt has been consumed, so the parent can clear it.
     var onConsumePrompt: () -> Void = {}
-    /// Optional template to preload (fills title + a scaffold of hints/questions).
+    /// Optional template to preload (fills title + body text).
     var initialTemplate: EntryTemplate? = nil
     /// Called once the initial template has been consumed.
     var onConsumeTemplate: () -> Void = {}
@@ -20,18 +21,27 @@ struct JournalEditorView: View {
     @Query(sort: \JournalPrompt.createdAt, order: .reverse) private var prompts: [JournalPrompt]
     @Query(sort: [SortDescriptor(\EntryTemplate.sortIndex), SortDescriptor(\EntryTemplate.createdAt)])
     private var templates: [EntryTemplate]
+    @Query(sort: \JournalEntry.date, order: .reverse) private var allEntries: [JournalEntry]
     @Query private var settingsList: [AppSettings]
 
     @State private var title = ""
     @State private var date: Date = .now
     @State private var text = ""
+    @State private var selfMood = 0
     @State private var activePrompt: String?
 
     @State private var timerEnabled = false
     @State private var timer = WritingTimer()
 
+    // Panels + tools
+    @State private var showStats = true
+    @State private var showChat = false
+    @State private var showFormatting = false
+    @State private var editor = MarkdownEditingController()
+    @State private var chat = CompanionChat()
+
     @State private var didConfigureDefaults = false
-    @State private var showSavedToast = false
+    @State private var toast: Toast?
 
     private var settings: AppSettings { settingsList.first ?? AppSettings() }
     private var availablePrompts: [JournalPrompt] { prompts.filter { !$0.isArchived } }
@@ -41,33 +51,46 @@ struct JournalEditorView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    starterButtons
-
-                    metaFields
-
-                    if timerEnabled {
-                        TimerBar(timer: timer)
-                    }
-
-                    if let activePrompt {
-                        promptBanner(activePrompt)
-                    }
-
-                    TextEditorWithPlaceholder(text: $text,
-                                              placeholder: "Schreib einfach los …",
-                                              minHeight: 320)
+        HStack(spacing: 0) {
+            if showStats {
+                EditorStatsPanel(entries: allEntries) {
+                    withAnimation(.snappy) { showStats = false }
                 }
-                .padding(20)
+                .frame(width: 244)
+                .transition(.move(edge: .leading).combined(with: .opacity))
+                Divider()
             }
 
-            footer
+            centerColumn
+
+            if showChat {
+                Divider()
+                CompanionChatPanel(chat: chat, entryTitle: title, entryText: text, settings: settings) {
+                    withAnimation(.snappy) { showChat = false }
+                }
+                .frame(width: 344)
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+            }
         }
         .navigationTitle("Neuer Eintrag")
         .toolbar {
+            ToolbarItem(placement: .navigation) {
+                Button {
+                    withAnimation(.snappy) { showStats.toggle() }
+                } label: {
+                    Image(systemName: "sidebar.left")
+                }
+                .help("Einblicke ein-/ausblenden")
+            }
             ToolbarItemGroup(placement: .primaryAction) {
+                Button {
+                    withAnimation(.snappy) { showChat.toggle() }
+                } label: {
+                    Image(systemName: "sparkles")
+                        .foregroundStyle(showChat ? Color.sage : Color.secondary)
+                }
+                .help("KI-Begleiter ein-/ausblenden")
+
                 Button {
                     save()
                 } label: {
@@ -79,42 +102,90 @@ struct JournalEditorView: View {
         }
         .onAppear(perform: configureDefaultsIfNeeded)
         .onDisappear { timer.stop() }
-        .overlay(alignment: .bottom) {
-            if showSavedToast {
-                savedToast
-                    .padding(.bottom, 70)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+        .overlay(alignment: .bottom) { toastView }
+    }
+
+    // MARK: - Centre column (the writing surface)
+
+    private var centerColumn: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            toolRow
+            starterRow
+
+            if showFormatting {
+                FormattingBar(controller: editor)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
+            if let activePrompt {
+                promptBanner(activePrompt)
+            }
+            if timerEnabled {
+                TimerBar(timer: timer)
+            }
+
+            titleField
+            MoodCheckInRow(selfMood: $selfMood)
+            editorSurface
+            footer
+        }
+        .padding(24)
+        .frame(maxWidth: 820, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(Color.appBackground)
+    }
+
+    private var toolRow: some View {
+        HStack(spacing: 10) {
+            DateFieldButton(date: $date)
+            Spacer()
+            toolButton("textformat", active: showFormatting, help: "Textformatierung") {
+                withAnimation(.snappy) { showFormatting.toggle() }
+            }
+            toolButton("mic", help: "Sprachaufnahme (bald)") {
+                showToast("Sprachaufnahme & Transkription kommen bald.", icon: "mic", tint: .secondary)
+            }
+            toolButton("timer", active: timerEnabled, help: "Schreib-Timer") { toggleTimer() }
         }
     }
 
-    // MARK: - Meta fields
+    private var titleField: some View {
+        TextField("Titel", text: $title)
+            .textFieldStyle(.plain)
+            .font(.system(size: 26, weight: .semibold, design: .serif))
+    }
 
-    private var metaFields: some View {
-        VStack(spacing: 12) {
-            TextField("Titel (optional)", text: $title)
-                .textFieldStyle(.plain)
-                .font(.title2.weight(.semibold))
-
-            HStack {
-                DateFieldButton(date: $date)
-                Spacer()
-                Toggle(isOn: $timerEnabled.animation()) {
-                    Label("Timer", systemImage: "timer")
-                }
-                .toggleStyle(.switch)
-                .onChange(of: timerEnabled) { _, enabled in
-                    if enabled { timer.reset() } else { timer.stop() }
-                }
+    private var editorSurface: some View {
+        ZStack(alignment: .topLeading) {
+            if text.isEmpty {
+                Text("Jetzt schreiben …")
+                    .font(.system(size: 15))
+                    .foregroundStyle(.tertiary)
+                    .padding(.leading, 11)
+                    .padding(.top, 10)
+                    .allowsHitTesting(false)
             }
+            MarkdownEditor(text: $text, controller: editor)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    private var footer: some View {
+        HStack(spacing: 12) {
+            Label("\(wordCount) Wörter", systemImage: "text.word.spacing")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            if settings.autoAnalyze {
+                Label("KI-Analyse nach dem Speichern", systemImage: "sparkles")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+            Spacer()
         }
     }
 
     // MARK: - Starter buttons (reflection question + template)
 
-    /// Two buttons at the top of a new entry: pick a reflection question, or a
-    /// template to start from.
-    private var starterButtons: some View {
+    private var starterRow: some View {
         HStack(spacing: 10) {
             Menu {
                 promptMenuContent
@@ -161,19 +232,6 @@ struct JournalEditorView: View {
         .overlay(Capsule().strokeBorder(Color.secondary.opacity(0.18)))
     }
 
-    /// Fill the editor from a template. If the entry is still empty the scaffold
-    /// replaces it; otherwise it is appended so nothing is lost.
-    private func applyTemplate(_ template: EntryTemplate) {
-        if title.isEmpty { title = template.name }
-        let scaffold = template.scaffoldText()
-        if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            text = scaffold
-        } else {
-            text += "\n\n" + scaffold
-        }
-        activePrompt = nil
-    }
-
     @ViewBuilder
     private var promptMenuContent: some View {
         if availablePrompts.isEmpty {
@@ -190,7 +248,6 @@ struct JournalEditorView: View {
     }
 
     private var groupedPrompts: [(key: String, value: [JournalPrompt])] {
-        // Favourites first within the flat list, then grouped by category.
         Dictionary(grouping: availablePrompts, by: { $0.category })
             .map { ($0.key, $0.value.sorted { ($0.isFavorite ? 0 : 1) < ($1.isFavorite ? 0 : 1) }) }
             .sorted { $0.key < $1.key }
@@ -222,39 +279,70 @@ struct JournalEditorView: View {
         activePrompt = prompt.text
     }
 
-    // MARK: - Footer
-
-    private var footer: some View {
-        HStack {
-            Label("\(wordCount) Wörter", systemImage: "text.word.spacing")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Spacer()
-            if settings.autoAnalyze {
-                Label("KI-Analyse nach dem Speichern", systemImage: "sparkles")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Button("Speichern") { save() }
-                .buttonStyle(.borderedProminent)
-                .disabled(!canSave)
+    /// Fill the editor from a template (title if empty, body appended if there is
+    /// already text so nothing is lost).
+    private func applyTemplate(_ template: EntryTemplate) {
+        if title.isEmpty { title = template.name }
+        let scaffold = template.scaffoldText()
+        if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            text = scaffold
+        } else {
+            text += "\n\n" + scaffold
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
-        .background(.bar)
+        activePrompt = nil
     }
 
-    private var savedToast: some View {
-        Label("Eintrag gespeichert", systemImage: "checkmark.circle.fill")
-            .font(.callout.weight(.medium))
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .background(.green.opacity(0.9), in: Capsule())
-            .foregroundStyle(.white)
-            .shadow(radius: 8, y: 4)
+    // MARK: - Small tool button + toast
+
+    private func toolButton(_ symbol: String, active: Bool = false,
+                            help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(active ? Color.sage : Color.secondary)
+                .frame(width: 32, height: 28)
+                .background(active ? Color.sage.opacity(0.15) : Color.clear,
+                           in: RoundedRectangle(cornerRadius: 8))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
+    }
+
+    private struct Toast {
+        var text: String
+        var icon: String
+        var tint: Color
+    }
+
+    @ViewBuilder
+    private var toastView: some View {
+        if let toast {
+            Label(toast.text, systemImage: toast.icon)
+                .font(.callout.weight(.medium))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(.ultraThinMaterial, in: Capsule())
+                .overlay(Capsule().strokeBorder(toast.tint.opacity(0.35)))
+                .padding(.bottom, 26)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
+    }
+
+    private func showToast(_ text: String, icon: String, tint: Color) {
+        withAnimation { toast = Toast(text: text, icon: icon, tint: tint) }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2.2))
+            withAnimation { toast = nil }
+        }
     }
 
     // MARK: - Actions
+
+    private func toggleTimer() {
+        withAnimation(.snappy) { timerEnabled.toggle() }
+        if timerEnabled { timer.reset() } else { timer.stop() }
+    }
 
     private func configureDefaultsIfNeeded() {
         guard !didConfigureDefaults else { return }
@@ -263,13 +351,10 @@ struct JournalEditorView: View {
         timer.durationMinutes = settings.timerDurationMinutes
         timer.reset()
 
-        // Preload a template (title + scaffold) handed over from the library.
         if let initialTemplate {
             applyTemplate(initialTemplate)
             onConsumeTemplate()
         }
-
-        // Preload a reflection prompt handed over from the Reflexionsfragen page.
         if let initialPrompt, !initialPrompt.isEmpty {
             activePrompt = initialPrompt
             onConsumePrompt()
@@ -286,6 +371,7 @@ struct JournalEditorView: View {
             text: text,
             writingSeconds: timer.elapsedSeconds
         )
+        entry.selfMood = selfMood
         // Persist locally FIRST so nothing is lost if analysis can't run.
         entry.analysisStatus = settings.autoAnalyze ? .pending : .notStarted
         context.insert(entry)
@@ -297,28 +383,22 @@ struct JournalEditorView: View {
         if settings.autoAnalyze {
             let captured = entry
             let currentSettings = settings
-            // Unstructured, main-actor Task: survives navigating away from the editor.
             Task { @MainActor in await analysis.analyze(captured, settings: currentSettings) }
         }
 
         resetEditor()
-        flashSavedToast()
+        showToast("Eintrag gespeichert", icon: "checkmark.circle.fill", tint: .green)
     }
 
     private func resetEditor() {
         title = ""
         text = ""
         date = .now
+        selfMood = 0
         activePrompt = nil
+        chat.messages.removeAll()
+        chat.notice = nil
         timer.reset()
-    }
-
-    private func flashSavedToast() {
-        withAnimation { showSavedToast = true }
-        Task { @MainActor in
-            try? await Task.sleep(for: .seconds(2))
-            withAnimation { showSavedToast = false }
-        }
     }
 }
 

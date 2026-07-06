@@ -535,6 +535,42 @@ enum LLMPromptTemplates {
         String(format: "%.2f", value)
     }
 
+    // MARK: - Companion chat (free text, not JSON)
+
+    /// Conversational prompt for the in-editor "KI-Begleiter". The current draft
+    /// is passed as context so the model can reference it. Output is free-form
+    /// text — call `generate(json: false)`, so the fixed JSON `formatRules` are
+    /// intentionally NOT applied here; only the editable tone is used.
+    static func companionChat(entryTitle: String,
+                              entryText: String,
+                              history: [ChatTurn],
+                              question: String,
+                              options: PromptOptions = .default) -> String {
+        let tone = resolve(options.tone, or: defaultTone)
+        let convo = history.isEmpty ? "" :
+            "Bisheriges Gespräch:\n"
+            + history.map { "\($0.isUser ? "Ich" : "Begleiter"): \($0.text)" }.joined(separator: "\n")
+            + "\n\n"
+        return """
+        \(tone)
+
+        Du bist ein einfühlsamer Journaling-Begleiter direkt im Schreibfenster. \
+        Die Person schreibt gerade einen Eintrag. Beziehe dich, wenn es hilft, auf \
+        diesen Entwurf, stelle gute Rückfragen, spiegele behutsam und fasse auf \
+        Wunsch zusammen. Antworte kurz (1-4 Sätze), warm und nicht diagnostisch, \
+        auf Deutsch. Nur normaler Fließtext – kein JSON, keine Aufzählungszeichen.
+
+        Aktueller Eintrag (Entwurf):
+        Titel: \(entryTitle.isEmpty ? "(kein Titel)" : entryTitle)
+        \"\"\"
+        \(entryText.isEmpty ? "(noch kein Text)" : entryText)
+        \"\"\"
+
+        \(convo)Ich: \(question)
+        Begleiter:
+        """
+    }
+
     /// Produce short dashboard insights from the most recent analyses.
     static func dashboardInsights(recentSummaries: [String],
                                   recentFeelings: [String],
