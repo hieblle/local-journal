@@ -84,7 +84,11 @@ Netzwerkverbindung geht an deinen lokalen Ollama-Server.
 - **Analyse-Seite** – einfache SwiftUI-Charts (Wörter/Tag, Häufigkeit, Stimmung
   über Zeit, häufigste Themen/Personen/Gefühle) plus Entitätslisten.
 - **Einstellungen** – Ollama-Adresse & Modell, Auto-Analyse, Timer-Defaults,
-  „ausstehende Analysen nachholen“.
+  „ausstehende Analysen nachholen“, Markdown-Ordner und – neu – **anpassbare
+  KI-Prompts**: die wichtigsten *inhaltlichen* Anweisungen (Grundton der Analyse,
+  Erzeugung der Reflexionsfragen, Ton der Wochen-/Monatsberichte) lassen sich hier
+  bearbeiten. Die strukturellen JSON-Regeln bleiben fest verdrahtet, damit die
+  Analyse-Pipeline stabil bleibt; ein leeres Feld nutzt den Standard.
 
 Geplante Features (u. a. die **Suche**) stehen in [`Roadmap.md`](./Roadmap.md).
 
@@ -131,9 +135,13 @@ LocalJournal/
 
 **Zwei Arten von Prompts** – bewusst getrennt:
 
-1. **Journal Prompts** (`JournalPromptSeedData`) = Reflexionsfragen für dich.
+1. **Journal Prompts** (`JournalPromptSeedData`) = Reflexionsfragen für dich –
+   direkt im Bereich *Reflexionsfragen* editierbar (markieren, ändern, anlegen).
 2. **LLM Prompt Templates** (`LLMPromptTemplates`) = technische Prompts an Gemma,
-   die strukturiertes, JSON-kompatibles Ergebnis anfordern.
+   die strukturiertes, JSON-kompatibles Ergebnis anfordern. Der **Ton** und die
+   wichtigsten **inhaltlichen Anweisungen** sind über `AppSettings` in den
+   Einstellungen anpassbar (siehe `PromptOptions`); die JSON-Formatregeln
+   (`formatRules`) werden immer automatisch ergänzt und sind nicht editierbar.
 
 ## Pragmatische Annahmen (dokumentiert)
 

@@ -42,20 +42,24 @@ final class AnalysisService {
         entry.analysisStatus = .running
         save()
 
+        let options = LLMPromptTemplates.PromptOptions(settings)
+
         do {
             let raw = try await service.generate(
-                prompt: LLMPromptTemplates.fullAnalysis(entryTitle: entry.title, entryText: entry.text)
+                prompt: LLMPromptTemplates.fullAnalysis(entryTitle: entry.title,
+                                                        entryText: entry.text,
+                                                        options: options)
             )
             let result = try FullAnalysisResult.parse(raw)
             applyAnalysis(result, to: entry, modelName: settings.modelName)
 
             // Best-effort comparison with the previous 7 days; a failure here
             // must not invalidate the primary analysis.
-            await addWeeklyComparison(to: entry, using: service)
+            await addWeeklyComparison(to: entry, using: service, options: options)
 
             // Best-effort deeper reflective layer (beliefs, needs, triggers,
             // energy, strategies). Also non-fatal.
-            await addDeepReflection(to: entry, using: service)
+            await addDeepReflection(to: entry, using: service, options: options)
 
             entry.analysisStatus = .completed
             lastErrorMessage = nil
@@ -119,7 +123,8 @@ final class AnalysisService {
             recentFeelings: feelings,
             recentGoals: goals,
             recentSummaries: summaries,
-            count: count
+            count: count,
+            options: LLMPromptTemplates.PromptOptions(settings)
         )
         return await decodePrompts(from: service, prompt: prompt)
     }
@@ -138,7 +143,8 @@ final class AnalysisService {
             patterns: analysis?.patterns ?? [],
             feelings: analysis?.feelings ?? [],
             goals: analysis?.goals ?? [],
-            count: count
+            count: count,
+            options: LLMPromptTemplates.PromptOptions(settings)
         )
         return await decodePrompts(from: service, prompt: prompt)
     }
@@ -174,8 +180,10 @@ final class AnalysisService {
 
     /// Second focused pass that fills the deeper reflective fields. Non-fatal:
     /// any failure simply leaves those fields empty.
-    private func addDeepReflection(to entry: JournalEntry, using service: OllamaService) async {
-        let prompt = LLMPromptTemplates.deepReflection(entryTitle: entry.title, entryText: entry.text)
+    private func addDeepReflection(to entry: JournalEntry, using service: OllamaService,
+                                   options: LLMPromptTemplates.PromptOptions) async {
+        let prompt = LLMPromptTemplates.deepReflection(entryTitle: entry.title, entryText: entry.text,
+                                                       options: options)
         guard let raw = try? await service.generate(prompt: prompt) else { return }
         let result = DeepReflectionResult.parse(raw)
         guard let analysis = entry.analysis else { return }
@@ -200,7 +208,8 @@ final class AnalysisService {
 
         let early = Array(summaries.prefix(6))
         let recent = Array(summaries.suffix(6))
-        let prompt = LLMPromptTemplates.reflectOnChange(earlySummaries: early, recentSummaries: recent)
+        let prompt = LLMPromptTemplates.reflectOnChange(earlySummaries: early, recentSummaries: recent,
+                                                        options: LLMPromptTemplates.PromptOptions(settings))
         return await decodeText(from: service, prompt: prompt, key: "text")
     }
 
@@ -217,7 +226,8 @@ final class AnalysisService {
         let summaries = recent.compactMap { $0.analysis?.summary }.filter { !$0.isEmpty }
         guard !summaries.isEmpty else { return "" }
 
-        let prompt = LLMPromptTemplates.valueAlignment(values: values, goals: goals, recentSummaries: summaries)
+        let prompt = LLMPromptTemplates.valueAlignment(values: values, goals: goals, recentSummaries: summaries,
+                                                       options: LLMPromptTemplates.PromptOptions(settings))
         return await decodeText(from: service, prompt: prompt, key: "text")
     }
 
@@ -273,7 +283,8 @@ final class AnalysisService {
 
         activeCount += 1
         defer { activeCount -= 1 }
-        if let raw = try? await service.generate(prompt: LLMPromptTemplates.periodReport(metrics: metrics)) {
+        let promptOptions = LLMPromptTemplates.PromptOptions(settings)
+        if let raw = try? await service.generate(prompt: LLMPromptTemplates.periodReport(metrics: metrics, options: promptOptions)) {
             let narrative = PeriodReportNarrative.parse(raw)
             if !narrative.narrative.isEmpty || !narrative.trajectory.isEmpty {
                 report.narrative = narrative.narrative
@@ -400,7 +411,8 @@ final class AnalysisService {
 
     // MARK: - 7-day comparison
 
-    private func addWeeklyComparison(to entry: JournalEntry, using service: OllamaService) async {
+    private func addWeeklyComparison(to entry: JournalEntry, using service: OllamaService,
+                                     options: LLMPromptTemplates.PromptOptions) async {
         let cutoff = Calendar.current.date(byAdding: .day, value: -7, to: entry.date) ?? entry.date
         let entryDate = entry.date
         var descriptor = FetchDescriptor<JournalEntry>(
@@ -424,7 +436,8 @@ final class AnalysisService {
 
         let prompt = LLMPromptTemplates.compareWithLastWeek(
             currentSummary: entry.analysis?.summary ?? "",
-            lastWeekSummaries: summariesArray
+            lastWeekSummaries: summariesArray,
+            options: options
         )
         guard let raw = try? await service.generate(prompt: prompt) else { return }
         let comparison = ComparisonResult.parse(raw)

@@ -107,6 +107,30 @@ private struct SettingsForm: View {
                 }
             }
 
+            Section("KI-Prompts") {
+                Text("Die technischen Analyse-Prompts bleiben fest verdrahtet, damit die JSON-Struktur stabil bleibt. Hier passt du die wichtigsten **inhaltlichen** Anweisungen an. Leer lassen = Standard.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                PromptEditorRow(
+                    title: "Grundton der Analyse",
+                    help: "Persönlichkeit & Ton für alle KI-Analysen. Die JSON-Formatregeln werden immer automatisch ergänzt.",
+                    text: $settings.customAnalysisTone,
+                    defaultText: LLMPromptTemplates.defaultTone)
+
+                PromptEditorRow(
+                    title: "Reflexionsfragen erzeugen",
+                    help: "Wie kritisch oder sanft die vorgeschlagenen Reflexionsfragen ausfallen.",
+                    text: $settings.customReflectionGuidance,
+                    defaultText: LLMPromptTemplates.defaultReflectionGuidance)
+
+                PromptEditorRow(
+                    title: "Wochen- & Monatsbericht",
+                    help: "Stimme und Fokus des erzählerischen Rückblicks in den Berichten.",
+                    text: $settings.customReportGuidance,
+                    defaultText: LLMPromptTemplates.defaultReportGuidance)
+            }
+
             Section("Editor") {
                 Toggle("Timer standardmäßig anzeigen", isOn: $settings.timerEnabledByDefault)
                 Stepper(value: $settings.timerDurationMinutes, in: 1...120) {
@@ -231,5 +255,60 @@ private struct SettingsForm: View {
         let done = await service.analyzePending(settings: settings)
         pendingResult = done > 0 ? "\(done) analysiert" : "Nichts zu tun oder Ollama offline"
         isAnalyzingPending = false
+    }
+}
+
+/// One editable prompt building block: a titled multi-line editor with a
+/// placeholder ("Standard wird verwendet") plus quick actions to load the
+/// built-in default text or reset back to the default.
+private struct PromptEditorRow: View {
+    let title: String
+    let help: String
+    @Binding var text: String
+    let defaultText: String
+
+    private var isCustom: Bool {
+        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.callout.weight(.medium))
+            Text(help)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            ZStack(alignment: .topLeading) {
+                if !isCustom {
+                    Text("Standard wird verwendet")
+                        .font(.callout)
+                        .foregroundStyle(.tertiary)
+                        .padding(.horizontal, 11)
+                        .padding(.vertical, 12)
+                        .allowsHitTesting(false)
+                }
+                TextEditor(text: $text)
+                    .font(.callout)
+                    .scrollContentBackground(.hidden)
+                    .frame(height: 96)
+                    .padding(6)
+            }
+            .background(Color.cardSurface, in: RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.secondary.opacity(0.15)))
+
+            HStack(spacing: 12) {
+                Button("Standard einfügen") { text = defaultText }
+                    .buttonStyle(.link)
+                if isCustom {
+                    Button("Zurücksetzen") { text = "" }
+                        .buttonStyle(.link)
+                }
+                Spacer()
+            }
+            .font(.caption)
+        }
+        .padding(.vertical, 4)
     }
 }

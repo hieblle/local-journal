@@ -38,6 +38,22 @@ final class AppSettings {
     /// Human-readable path of the mirror folder (for display in Settings).
     var mirrorFolderPath: String = ""
 
+    // MARK: Customisable prompt building blocks
+    //
+    // The most important *content* parts of the LLM prompts, editable in
+    // Settings. Empty string = use the built-in default (see `LLMPromptTemplates`).
+    // The structural JSON rules are never editable, so custom text can't break
+    // the analysis pipeline. Defaulted for safe migration.
+
+    /// Overrides the persona / tone of the system framing for all analyses.
+    var customAnalysisTone: String = ""
+
+    /// Overrides the guidance for generating reflection questions.
+    var customReflectionGuidance: String = ""
+
+    /// Overrides the guidance for the weekly / monthly report narrative.
+    var customReportGuidance: String = ""
+
     init(
         id: UUID = UUID(),
         ollamaBaseURL: String = AppSettings.defaultBaseURL,

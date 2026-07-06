@@ -17,24 +17,87 @@ import Foundation
 ///    syntactically valid JSON output.
 enum LLMPromptTemplates {
 
-    /// Shared framing prepended to analysis prompts. Keeps the model grounded,
-    /// local, and explicitly *non-diagnostic*.
-    static let systemPreamble = """
+    // MARK: - Editable building blocks (customisable in Settings)
+
+    /// The **persona / tone** part of the system framing — editable by the user
+    /// (Settings → KI-Prompts). Changing it shifts how *every* analysis is
+    /// phrased. The non-negotiable format rules (`formatRules`) are always
+    /// appended separately, so a custom tone can never break the JSON contract.
+    static let defaultTone = """
     Du bist ein achtsamer, zurückhaltender Reflexions-Assistent für eine lokale \
     Journaling-App. Du hilfst, Gedanken zu ordnen und Muster sichtbar zu machen. \
-    Formuliere niemals therapeutisch-diagnostisch und stelle keine Ferndiagnosen. \
+    Formuliere niemals therapeutisch-diagnostisch und stelle keine Ferndiagnosen.
+    """
+
+    /// Fixed output contract, always appended after the tone. **Not** user-editable
+    /// so the Swift decoders keep working.
+    static let formatRules = """
     Antworte ausschließlich mit gültigem JSON, ohne Markdown, ohne Code-Fences \
     und ohne Erklärtext außerhalb des JSON. Verwende die exakt vorgegebenen \
     Schlüssel. Wenn etwas unklar ist, gib leere Werte ([] bzw. "") zurück.
     """
 
+    /// Default guidance for **generating reflection questions** — editable in
+    /// Settings. Shapes how critical / gentle the questions are.
+    static let defaultReflectionGuidance = """
+    Die Fragen sollen zu ehrlicher Selbstreflexion anregen: blinde Flecken, \
+    unausgesprochene Annahmen, Widersprüche, Vermeidungen und wiederkehrende \
+    Muster behutsam sichtbar machen und neue Perspektiven eröffnen. Kritisch, \
+    aber wertschätzend – nie diagnostisch oder belehrend.
+    """
+
+    /// Default guidance for the **weekly / monthly report narrative** — editable
+    /// in Settings. Shapes the voice of the recap.
+    static let defaultReportGuidance = """
+    Schreibe warm, konkret und ermutigend, in der zweiten Person ("du"), nicht \
+    diagnostisch. Beziehe dich auf konkrete Themen, Gefühle und Muster.
+    """
+
+    /// User-tunable prompt pieces, resolved from `AppSettings`. Empty strings fall
+    /// back to the defaults above. Passed explicitly into the templates so there
+    /// is no hidden global state.
+    struct PromptOptions {
+        var tone: String = ""
+        var reflectionGuidance: String = ""
+        var reportGuidance: String = ""
+
+        static let `default` = PromptOptions()
+
+        init(tone: String = "", reflectionGuidance: String = "", reportGuidance: String = "") {
+            self.tone = tone
+            self.reflectionGuidance = reflectionGuidance
+            self.reportGuidance = reportGuidance
+        }
+
+        init(_ settings: AppSettings) {
+            self.tone = settings.customAnalysisTone
+            self.reflectionGuidance = settings.customReflectionGuidance
+            self.reportGuidance = settings.customReportGuidance
+        }
+    }
+
+    /// Compose the full system framing: the (possibly custom) tone plus the fixed
+    /// format rules. Keeps the model grounded, local and non-diagnostic while
+    /// guaranteeing valid JSON.
+    static func systemPreamble(tone: String = "") -> String {
+        let resolvedTone = resolve(tone, or: defaultTone)
+        return resolvedTone + "\n" + formatRules
+    }
+
+    /// Return the trimmed custom string, or the fallback when it is blank.
+    static func resolve(_ custom: String, or fallback: String) -> String {
+        let trimmed = custom.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? fallback : trimmed
+    }
+
     // MARK: - Combined analysis (used by the pipeline)
 
     /// One prompt that produces the full per-entry analysis as a single JSON
     /// object. Maps directly onto `EntryAnalysis`.
-    static func fullAnalysis(entryTitle: String, entryText: String) -> String {
+    static func fullAnalysis(entryTitle: String, entryText: String,
+                             options: PromptOptions = .default) -> String {
         """
-        \(systemPreamble)
+        \(systemPreamble(tone: options.tone))
 
         Analysiere den folgenden Journaleintrag und gib GENAU dieses JSON zurück:
         {
@@ -96,9 +159,10 @@ enum LLMPromptTemplates {
     /// Extract the deeper psychological layer of a single entry: beliefs, needs,
     /// triggers, energy, and problem→solution strategies. Kept as a *separate*
     /// focused prompt so the small local model stays sharp on each task.
-    static func deepReflection(entryTitle: String, entryText: String) -> String {
+    static func deepReflection(entryTitle: String, entryText: String,
+                               options: PromptOptions = .default) -> String {
         """
-        \(systemPreamble)
+        \(systemPreamble(tone: options.tone))
 
         Analysiere den folgenden Journaleintrag auf einer tieferen, reflexiven \
         Ebene. Gib NUR wieder, was der Text klar hergibt oder deutlich nahelegt – \
@@ -131,9 +195,10 @@ enum LLMPromptTemplates {
 
     /// Narrative synthesis: how the person changed between older and recent
     /// entries. Returns `{ "text": "..." }`.
-    static func reflectOnChange(earlySummaries: [String], recentSummaries: [String]) -> String {
+    static func reflectOnChange(earlySummaries: [String], recentSummaries: [String],
+                                options: PromptOptions = .default) -> String {
         """
-        \(systemPreamble)
+        \(systemPreamble(tone: options.tone))
 
         Vergleiche die FRÜHEREN mit den JÜNGEREN Einträgen und beschreibe knapp \
         und konkret, wie sich die Person über die Zeit verändert hat: Stimmung, \
@@ -152,9 +217,10 @@ enum LLMPromptTemplates {
 
     /// Compare the person's written values / goals against how they actually
     /// acted in recent entries. Returns `{ "text": "..." }`.
-    static func valueAlignment(values: [String], goals: [String], recentSummaries: [String]) -> String {
+    static func valueAlignment(values: [String], goals: [String], recentSummaries: [String],
+                               options: PromptOptions = .default) -> String {
         """
-        \(systemPreamble)
+        \(systemPreamble(tone: options.tone))
 
         Gleiche die selbst formulierten WERTE und ZIELE der Person mit ihren \
         tatsächlichen Handlungen in den letzten Einträgen ab. Benenne behutsam, \
@@ -181,16 +247,14 @@ enum LLMPromptTemplates {
                                           recentFeelings: [String],
                                           recentGoals: [String],
                                           recentSummaries: [String],
-                                          count: Int = 5) -> String {
-        """
-        \(systemPreamble)
+                                          count: Int = 5,
+                                          options: PromptOptions = .default) -> String {
+        let guidance = resolve(options.reflectionGuidance, or: defaultReflectionGuidance)
+        return """
+        \(systemPreamble(tone: options.tone))
 
-        Erzeuge \(count) offene, **kritisch-reflexive** Journaling-Fragen, die \
-        konkret an das anknüpfen, was die Person zuletzt geschrieben hat. Die \
-        Fragen sollen zu ehrlicher Selbstreflexion anregen: blinde Flecken, \
-        unausgesprochene Annahmen, Widersprüche, Vermeidungen und wiederkehrende \
-        Muster behutsam sichtbar machen und neue Perspektiven eröffnen. Kritisch, \
-        aber wertschätzend – nie diagnostisch oder belehrend. Beziehe dich, wo \
+        Erzeuge \(count) offene Journaling-Fragen, die konkret an das anknüpfen, \
+        was die Person zuletzt geschrieben hat. \(guidance) Beziehe dich, wo \
         möglich, auf die genannten Themen/Muster/Gefühle/Ziele. Jede Frage ist \
         EINE offene Frage (kein Ja/Nein).
 
@@ -214,16 +278,14 @@ enum LLMPromptTemplates {
                                           patterns: [String],
                                           feelings: [String],
                                           goals: [String],
-                                          count: Int = 4) -> String {
-        """
-        \(systemPreamble)
+                                          count: Int = 4,
+                                          options: PromptOptions = .default) -> String {
+        let guidance = resolve(options.reflectionGuidance, or: defaultReflectionGuidance)
+        return """
+        \(systemPreamble(tone: options.tone))
 
-        Lies den folgenden Journaleintrag und erzeuge \(count) **kritisch-reflexive** \
-        Anschlussfragen NUR zu diesem Eintrag. Die Fragen sollen die Person zu einer \
-        tieferen, ehrlichen Auseinandersetzung mit dem Geschriebenen einladen: \
-        hinterfrage Annahmen, benenne mögliche blinde Flecken, Vermeidungen oder \
-        Widersprüche behutsam und öffne neue Perspektiven. Kritisch, aber \
-        wertschätzend – nie diagnostisch. Jede Frage ist EINE offene Frage \
+        Lies den folgenden Journaleintrag und erzeuge \(count) Anschlussfragen NUR \
+        zu diesem Eintrag. \(guidance) Jede Frage ist EINE offene Frage \
         (kein Ja/Nein) und knüpft konkret am Inhalt an.
 
         Gib GENAU dieses JSON zurück:
@@ -250,7 +312,7 @@ enum LLMPromptTemplates {
     /// Summarise a single entry.
     static func summarizeEntry(entryText: String) -> String {
         """
-        \(systemPreamble)
+        \(systemPreamble())
 
         Fasse den folgenden Journaleintrag in 1-2 neutralen Sätzen zusammen.
         Gib GENAU dieses JSON zurück:
@@ -266,7 +328,7 @@ enum LLMPromptTemplates {
     /// Extract feelings / moods plus a coarse mood score.
     static func extractFeelings(entryText: String) -> String {
         """
-        \(systemPreamble)
+        \(systemPreamble())
 
         Erkenne Gefühle und Stimmungen im folgenden Eintrag.
         Gib GENAU dieses JSON zurück:
@@ -283,7 +345,7 @@ enum LLMPromptTemplates {
     /// Extract mentioned people.
     static func extractPeople(entryText: String) -> String {
         """
-        \(systemPreamble)
+        \(systemPreamble())
 
         Erkenne konkret erwähnte Personen (nur Namen) im folgenden Eintrag.
         Gib GENAU dieses JSON zurück:
@@ -299,7 +361,7 @@ enum LLMPromptTemplates {
     /// Extract topics / themes.
     static func extractTopics(entryText: String) -> String {
         """
-        \(systemPreamble)
+        \(systemPreamble())
 
         Erkenne zentrale Themen (kurze Substantive) im folgenden Eintrag.
         Gib GENAU dieses JSON zurück:
@@ -315,7 +377,7 @@ enum LLMPromptTemplates {
     /// Extract key insights / learnings.
     static func extractKeyInsights(entryText: String) -> String {
         """
-        \(systemPreamble)
+        \(systemPreamble())
 
         Extrahiere die wichtigsten Erkenntnisse / Learnings aus dem Eintrag.
         Gib GENAU dieses JSON zurück:
@@ -331,7 +393,7 @@ enum LLMPromptTemplates {
     /// Detect recurring patterns across several recent summaries.
     static func detectPatterns(recentSummaries: [String]) -> String {
         """
-        \(systemPreamble)
+        \(systemPreamble())
 
         Erkenne wiederkehrende Muster und Trends in den folgenden \
         Zusammenfassungen der letzten Einträge.
@@ -345,9 +407,10 @@ enum LLMPromptTemplates {
 
     /// Compare the current entry against the last 7 days of summaries.
     static func compareWithLastWeek(currentSummary: String,
-                                    lastWeekSummaries: [String]) -> String {
+                                    lastWeekSummaries: [String],
+                                    options: PromptOptions = .default) -> String {
         """
-        \(systemPreamble)
+        \(systemPreamble(tone: options.tone))
 
         Vergleiche den aktuellen Eintrag mit den Zusammenfassungen der letzten \
         7 Tage. Beschreibe knapp, was sich verändert, wiederholt oder \
@@ -366,7 +429,7 @@ enum LLMPromptTemplates {
                               topics: [String],
                               people: [String]) -> String {
         """
-        \(systemPreamble)
+        \(systemPreamble())
 
         Erstelle aus den folgenden Eintrags-Zusammenfassungen einer Woche eine \
         kompakte Wochenübersicht.
@@ -392,7 +455,9 @@ enum LLMPromptTemplates {
     /// deterministic metrics plus the period's entry summaries. The numbers are
     /// pre-computed on purpose — the model must not invent figures, only narrate
     /// them. Returns the narrative layer (`PeriodReportNarrative`).
-    static func periodReport(metrics m: ReportMetrics) -> String {
+    static func periodReport(metrics m: ReportMetrics,
+                             options: PromptOptions = .default) -> String {
+        let guidance = resolve(options.reportGuidance, or: defaultReportGuidance)
         let unit = m.kind.unitLabel
         let topics = csv(m.topTopics.map { "\($0.label) (\($0.count)×)" })
         let newTopics = csv(m.newTopics)
@@ -408,14 +473,12 @@ enum LLMPromptTemplates {
             : m.summaries.map { "- \($0)" }.joined(separator: "\n")
 
         return """
-        \(systemPreamble)
+        \(systemPreamble(tone: options.tone))
 
         Erstelle einen persönlichen \(m.kind.reportTitle) für den Zeitraum \
         \(rangeDescription(m)) auf Basis der folgenden, bereits lokal berechneten \
         Kennzahlen und Eintrags-Zusammenfassungen. Nutze AUSSCHLIESSLICH diese \
-        Informationen – erfinde keine Fakten und keine Zahlen. Schreibe warm, \
-        konkret und ermutigend, in der zweiten Person ("du"), nicht diagnostisch. \
-        Beziehe dich auf konkrete Themen, Gefühle und Muster.
+        Informationen – erfinde keine Fakten und keine Zahlen. \(guidance)
 
         Gib GENAU dieses JSON zurück:
         {
@@ -477,7 +540,7 @@ enum LLMPromptTemplates {
                                   recentFeelings: [String],
                                   recentTopics: [String]) -> String {
         """
-        \(systemPreamble)
+        \(systemPreamble())
 
         Erzeuge eine sehr knappe Dashboard-Übersicht für die letzten Einträge.
         Gib GENAU dieses JSON zurück:
