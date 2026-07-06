@@ -103,16 +103,16 @@ struct PromptLibraryView: View {
                 initialName: editingTemplate?.name ?? "",
                 initialCadence: editingTemplate?.cadence ?? .flexible,
                 initialDetail: editingTemplate?.detail ?? "",
-                initialSections: editingTemplate?.sections ?? [""],
+                initialText: editingTemplate?.bodyText ?? "",
                 isEditing: editingTemplate != nil
-            ) { name, cadence, detail, sections in
+            ) { name, cadence, detail, text in
                 if let template = editingTemplate {
                     template.name = name
                     template.cadence = cadence
                     template.detail = detail
-                    template.sections = sections
+                    template.text = text
                 } else {
-                    context.insert(EntryTemplate(name: name, cadence: cadence, sections: sections,
+                    context.insert(EntryTemplate(name: name, cadence: cadence, text: text,
                                                  detail: detail, sortIndex: templates.count))
                 }
                 save()
@@ -367,21 +367,11 @@ private struct TemplateCard: View {
                     Text(template.detail).font(.callout).foregroundStyle(.secondary)
                 }
 
-                VStack(alignment: .leading, spacing: 6) {
-                    ForEach(Array(template.sections.prefix(6).enumerated()), id: \.offset) { _, section in
-                        HStack(alignment: .top, spacing: 8) {
-                            Image(systemName: "circle.fill")
-                                .font(.system(size: 5))
-                                .foregroundStyle(.tertiary)
-                                .padding(.top, 6)
-                            Text(section).font(.callout).foregroundStyle(.secondary)
-                        }
-                    }
-                    if template.sections.count > 6 {
-                        Text("+ \(template.sections.count - 6) weitere")
-                            .font(.caption).foregroundStyle(.tertiary)
-                    }
-                }
+                Text(template.bodyText)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
                 Button(action: onStart) {
                     Label("Mit Vorlage schreiben", systemImage: "square.and.pencil")
@@ -467,30 +457,31 @@ private struct PromptEditorSheet: View {
     }
 }
 
-/// Sheet for adding *or* editing a template (name, cadence, hints/questions).
+/// Sheet for adding *or* editing a template (title + free text).
 private struct TemplateEditorSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     let isEditing: Bool
-    var onSave: (String, TemplateCadence, String, [String]) -> Void
+    var onSave: (String, TemplateCadence, String, String) -> Void
 
     @State private var name: String
     @State private var cadence: TemplateCadence
     @State private var detail: String
-    @State private var sections: [String]
+    @State private var text: String
 
     init(initialName: String, initialCadence: TemplateCadence, initialDetail: String,
-         initialSections: [String], isEditing: Bool,
-         onSave: @escaping (String, TemplateCadence, String, [String]) -> Void) {
+         initialText: String, isEditing: Bool,
+         onSave: @escaping (String, TemplateCadence, String, String) -> Void) {
         self.isEditing = isEditing
         self.onSave = onSave
         _name = State(initialValue: initialName)
         _cadence = State(initialValue: initialCadence)
         _detail = State(initialValue: initialDetail)
-        _sections = State(initialValue: initialSections.isEmpty ? [""] : initialSections)
+        _text = State(initialValue: initialText)
     }
 
     private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var trimmedText: String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -498,64 +489,42 @@ private struct TemplateEditorSheet: View {
                 .font(.title3.weight(.semibold))
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Name").font(.caption).foregroundStyle(.secondary)
+                Text("Titel").font(.caption).foregroundStyle(.secondary)
                 TextField("z. B. Tagesreflexion", text: $name)
                     .textFieldStyle(.roundedBorder)
             }
 
-            Picker("Rhythmus", selection: $cadence) {
-                ForEach(TemplateCadence.allCases) { Text($0.label).tag($0) }
-            }
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Kurzbeschreibung (optional)").font(.caption).foregroundStyle(.secondary)
-                TextField("Wofür ist diese Vorlage?", text: $detail)
+            HStack(spacing: 12) {
+                Picker("Rhythmus", selection: $cadence) {
+                    ForEach(TemplateCadence.allCases) { Text($0.label).tag($0) }
+                }
+                .fixedSize()
+                TextField("Kurzbeschreibung (optional)", text: $detail)
                     .textFieldStyle(.roundedBorder)
             }
 
-            Text("Fragen / Hinweise").font(.caption).foregroundStyle(.secondary)
-            ScrollView {
-                VStack(spacing: 8) {
-                    ForEach(sections.indices, id: \.self) { index in
-                        HStack(spacing: 8) {
-                            TextField("Frage oder Hinweis", text: $sections[index])
-                                .textFieldStyle(.roundedBorder)
-                            Button {
-                                sections.remove(at: index)
-                            } label: {
-                                Image(systemName: "minus.circle")
-                            }
-                            .buttonStyle(.borderless)
-                            .disabled(sections.count <= 1)
-                        }
-                    }
-                }
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Text").font(.caption).foregroundStyle(.secondary)
+                TextEditorWithPlaceholder(
+                    text: $text,
+                    placeholder: "Schreibe hier den Vorlagentext …\n\nZum Beispiel Überschriften, Fragen oder Hinweise, mit denen du in den Eintrag startest.",
+                    minHeight: 240
+                )
             }
-            .frame(maxHeight: 200)
-
-            Button {
-                sections.append("")
-            } label: {
-                Label("Zeile hinzufügen", systemImage: "plus")
-            }
-            .buttonStyle(.borderless)
 
             HStack {
                 Spacer()
                 Button("Abbrechen") { dismiss() }
                 Button(isEditing ? "Sichern" : "Hinzufügen") {
-                    let cleaned = sections
-                        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                        .filter { !$0.isEmpty }
-                    guard !trimmedName.isEmpty, !cleaned.isEmpty else { return }
-                    onSave(trimmedName, cadence, detail.trimmingCharacters(in: .whitespacesAndNewlines), cleaned)
+                    guard !trimmedName.isEmpty, !trimmedText.isEmpty else { return }
+                    onSave(trimmedName, cadence, detail.trimmingCharacters(in: .whitespacesAndNewlines), trimmedText)
                     dismiss()
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(trimmedName.isEmpty)
+                .disabled(trimmedName.isEmpty || trimmedText.isEmpty)
             }
         }
         .padding(20)
-        .frame(width: 480)
+        .frame(width: 520)
     }
 }

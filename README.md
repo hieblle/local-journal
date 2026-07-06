@@ -32,10 +32,12 @@ Netzwerkverbindung geht an deinen lokalen Ollama-Server.
     Eintrag damit starten**. Neue Fragen entstehen **manuell** oder werden **aus
     deinen bisherigen Einträgen generiert** (auf kritische Selbstreflexion
     ausgelegt: Muster, Gefühle, Ziele, blinde Flecken).
-  - **Vorlagen** – **selbst erstellte Eintrags-Vorlagen**: mehrere Fragen/Hinweise
-    plus ein Rhythmus (täglich/wöchentlich/…). „Mit Vorlage schreiben" füllt den
-    Editor mit Titel und einem Gerüst zum Reinstarten. Vorlagen lassen sich auch
-    direkt im Editor über das **Vorlagen-Menü** wählen.
+  - **Vorlagen** – **selbst erstellte Eintrags-Vorlagen** aus **Titel + freiem
+    Text** plus einem Rhythmus (täglich/wöchentlich/…). „Mit Vorlage schreiben"
+    füllt den Editor mit Titel und Text zum Reinstarten.
+
+  Beim **neuen Eintrag** gibt es oben zwei Buttons: **Reflexionsfrage** und
+  **Vorlage** – jeweils zum Auswählen.
 - **KI-Analyse nach jedem Eintrag** – Zusammenfassung, **Gefühle mit Intensität
   (0–10)**, Themen, Personen, Orte, Erkenntnisse, Ideen, Vorhaben, Ziele, Muster
   und 7-Tage-Vergleich; strukturiert lokal je Eintrag gespeichert (`EntryAnalysis`).

@@ -45,7 +45,12 @@ final class EntryTemplate {
     /// Backing store for `cadence`.
     private var cadenceRaw: String
 
-    /// Ordered hints / questions that scaffold the entry.
+    /// The template body: free text the new entry starts from (headings,
+    /// questions, prompts — whatever the user writes).
+    var text: String = ""
+
+    /// Legacy per-question scaffold (older templates). Kept for migration; new
+    /// templates use `text`. Backfilled into `text` on launch.
     var sections: [String]
 
     /// Optional one-line description shown on the card.
@@ -63,25 +68,26 @@ final class EntryTemplate {
 
     init(name: String,
          cadence: TemplateCadence = .flexible,
+         text: String = "",
          sections: [String] = [],
          detail: String = "",
          sortIndex: Int = 0) {
         self.id = UUID()
         self.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         self.cadenceRaw = cadence.rawValue
+        self.text = text
         self.sections = sections
         self.detail = detail.trimmingCharacters(in: .whitespacesAndNewlines)
         self.sortIndex = sortIndex
         self.createdAt = .now
     }
 
-    /// The starter text a new entry begins with: each hint / question on its own
-    /// line with room to write underneath.
-    func scaffoldText() -> String {
-        sections
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-            .map { "\($0)\n\n\n" }
-            .joined()
+    /// Body text used for display / editing (falls back to the legacy per-question
+    /// scaffold for old templates).
+    var bodyText: String {
+        text.isEmpty ? sections.joined(separator: "\n\n") : text
     }
+
+    /// The starter text a new entry begins with.
+    func scaffoldText() -> String { bodyText }
 }

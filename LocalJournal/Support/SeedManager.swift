@@ -18,10 +18,16 @@ enum SeedManager {
         if !settings.didSeedTemplates {
             for (index, seed) in EntryTemplateSeedData.seeds.enumerated() {
                 context.insert(EntryTemplate(name: seed.name, cadence: seed.cadence,
-                                             sections: seed.sections, detail: seed.detail,
+                                             text: seed.text, detail: seed.detail,
                                              sortIndex: index))
             }
             settings.didSeedTemplates = true
+        }
+
+        // Migrate legacy per-question templates to free text (one-way, idempotent).
+        let existingTemplates = (try? context.fetch(FetchDescriptor<EntryTemplate>())) ?? []
+        for template in existingTemplates where template.text.isEmpty && !template.sections.isEmpty {
+            template.text = template.sections.joined(separator: "\n\n")
         }
 
         try? context.save()
@@ -35,41 +41,65 @@ enum EntryTemplateSeedData {
         let name: String
         let cadence: TemplateCadence
         let detail: String
-        let sections: [String]
+        let text: String
     }
 
     static let seeds: [Seed] = [
         Seed(name: "Tagesreflexion", cadence: .daily,
              detail: "Kurzer Rückblick auf den Tag.",
-             sections: [
-                "Wie war mein Tag insgesamt?",
-                "Was war heute gut?",
-                "Was hat mich gefordert?",
-                "Wofür bin ich dankbar?",
-                "Was nehme ich mir für morgen vor?"
-             ]),
+             text: """
+             Wie war mein Tag insgesamt?
+
+
+             Was war heute gut?
+
+
+             Was hat mich gefordert?
+
+
+             Wofür bin ich dankbar?
+
+
+             Was nehme ich mir für morgen vor?
+             """),
         Seed(name: "Morgenseiten", cadence: .daily,
              detail: "Freies Schreiben zum Start in den Tag.",
-             sections: [
-                "Was geht mir gerade durch den Kopf?",
-                "Worauf freue ich mich heute?",
-                "Was ist heute wirklich wichtig?"
-             ]),
+             text: """
+             Was geht mir gerade durch den Kopf?
+
+
+             Worauf freue ich mich heute?
+
+
+             Was ist heute wirklich wichtig?
+             """),
         Seed(name: "Wochenrückblick", cadence: .weekly,
              detail: "Die Woche einordnen und die nächste ausrichten.",
-             sections: [
-                "Was waren die Highlights der Woche?",
-                "Was habe ich gelernt?",
-                "Was hat Energie gegeben, was gekostet?",
-                "Woran will ich nächste Woche arbeiten?"
-             ]),
+             text: """
+             Was waren die Highlights der Woche?
+
+
+             Was habe ich gelernt?
+
+
+             Was hat Energie gegeben, was gekostet?
+
+
+             Woran will ich nächste Woche arbeiten?
+             """),
         Seed(name: "Jahresrückblick", cadence: .yearly,
              detail: "Das Jahr würdigen und Richtung geben.",
-             sections: [
-                "Was war dieses Jahr bedeutsam?",
-                "Worauf bin ich stolz?",
-                "Was lasse ich zurück?",
-                "Was nehme ich mir fürs neue Jahr vor?"
-             ])
+             text: """
+             Was war dieses Jahr bedeutsam?
+
+
+             Worauf bin ich stolz?
+
+
+             Was lasse ich zurück?
+
+
+             Was nehme ich mir fürs neue Jahr vor?
+             """)
     ]
 }

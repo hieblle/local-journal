@@ -44,13 +44,17 @@ struct JournalEditorView: View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
+                    starterButtons
+
                     metaFields
 
                     if timerEnabled {
                         TimerBar(timer: timer)
                     }
 
-                    promptArea
+                    if let activePrompt {
+                        promptBanner(activePrompt)
+                    }
 
                     TextEditorWithPlaceholder(text: $text,
                                               placeholder: "Schreib einfach los …",
@@ -64,8 +68,6 @@ struct JournalEditorView: View {
         .navigationTitle("Neuer Eintrag")
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
-                templateMenu
-                promptMenu
                 Button {
                     save()
                 } label: {
@@ -108,68 +110,55 @@ struct JournalEditorView: View {
         }
     }
 
-    // MARK: - Prompt picker
+    // MARK: - Starter buttons (reflection question + template)
 
-    /// Either the active reflection question (as a banner) or an inline
-    /// invitation to start writing from one.
-    @ViewBuilder
-    private var promptArea: some View {
-        if let activePrompt {
-            promptBanner(activePrompt)
-        } else if !availablePrompts.isEmpty {
-            promptChooserInline
-        }
-    }
-
-    private var promptChooserInline: some View {
-        Menu {
-            promptMenuContent
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "lightbulb")
-                    .foregroundStyle(.yellow)
-                Text("Mit einer Reflexionsfrage starten")
-                Spacer()
-                Image(systemName: "chevron.down")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-            .font(.callout)
-            .foregroundStyle(.secondary)
-            .padding(12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.yellow.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.yellow.opacity(0.20)))
-            .contentShape(Rectangle())
-        }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .fixedSize(horizontal: false, vertical: true)
-    }
-
-    private var promptMenu: some View {
-        Menu {
-            promptMenuContent
-        } label: {
-            Label("Impuls wählen", systemImage: "lightbulb")
-        }
-    }
-
-    @ViewBuilder
-    private var templateMenu: some View {
-        if !templates.isEmpty {
+    /// Two buttons at the top of a new entry: pick a reflection question, or a
+    /// template to start from.
+    private var starterButtons: some View {
+        HStack(spacing: 10) {
             Menu {
-                ForEach(templates) { template in
-                    Button {
-                        applyTemplate(template)
-                    } label: {
-                        Label(template.name, systemImage: template.cadence.systemImage)
+                promptMenuContent
+            } label: {
+                starterLabel("Reflexionsfrage", systemImage: "lightbulb", tint: .yellow)
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+
+            Menu {
+                if templates.isEmpty {
+                    Text("Keine Vorlagen vorhanden")
+                } else {
+                    ForEach(templates) { template in
+                        Button {
+                            applyTemplate(template)
+                        } label: {
+                            Label(template.name, systemImage: template.cadence.systemImage)
+                        }
                     }
                 }
             } label: {
-                Label("Vorlage", systemImage: "doc.text")
+                starterLabel("Vorlage", systemImage: "doc.text", tint: .sage)
             }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+
+            Spacer()
         }
+    }
+
+    private func starterLabel(_ title: String, systemImage: String, tint: Color) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: systemImage).foregroundStyle(tint)
+            Text(title)
+            Image(systemName: "chevron.down").font(.caption2).foregroundStyle(.tertiary)
+        }
+        .font(.callout)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(Color.cardSurface, in: Capsule())
+        .overlay(Capsule().strokeBorder(Color.secondary.opacity(0.18)))
     }
 
     /// Fill the editor from a template. If the entry is still empty the scaffold
