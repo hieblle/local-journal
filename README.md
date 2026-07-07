@@ -18,19 +18,21 @@ Netzwerkverbindung geht an deinen lokalen Ollama-Server.
   der Analyse berechnet (siehe `Support/ResilienceScore.swift`).
 - **Editor** – eine ruhige, aufgeräumte Schreibfläche (Apple-Journal-nah, im
   warmen Stil der App). In der Mitte Titel, ein **Stimmungs-Check-in** (eine Frage,
-  fünf Emoji zum schnellen Antippen) und der Schreibbereich; darüber Datum,
-  optionaler **Schreib-Timer**, die Starter für **Reflexionsfrage/Vorlage** und
-  eine **Textformatierung** (fett/kursiv/unterstrichen/durchgestrichen, Überschrift,
-  Aufzählung, nummerierte Liste, Zitat) – als **Markdown**, das 1:1 in der
-  `.md`-Datei landet. Ein **Mikrofon-Button** ist für spätere Sprachaufnahme +
-  Transkription vorbereitet (noch ohne Funktion, siehe Roadmap).
-  - **Links** ein ein-/ausklappbares **Einblicke**-Panel mit den wichtigsten
-    Zahlen (Streak, Einträge gesamt, Wörter).
-  - **Rechts** ein ein-/ausklappbarer **KI-Begleiter**: ein Chat mit dem lokalen
-    Ollama-Modell, dem der **aktuelle Entwurf als Kontext** mitgegeben wird –
-    inklusive schneller **Impulse** zum Antippen.
+  fünf Emoji zum schnellen Antippen – nach der Wahl **faltet sich die Zeile
+  animiert auf genau diesen Smiley zusammen**; erneutes Antippen öffnet sie wieder)
+  und der Schreibbereich; darüber Datum, optionaler **Schreib-Timer**, die Starter
+  für **Reflexionsfrage/Vorlage** und eine **Textformatierung** (fett/kursiv/
+  unterstrichen/durchgestrichen, Überschrift, Aufzählung, nummerierte Liste, Zitat)
+  – als **Markdown**, das 1:1 in der `.md`-Datei landet. Ein **Mikrofon-Button** ist
+  für spätere Sprachaufnahme + Transkription vorbereitet (noch ohne Funktion, siehe
+  Roadmap). **Rechts** lässt sich ein **KI-Begleiter** ein-/ausklappen: ein Chat mit
+  dem lokalen Ollama-Modell, dem der **aktuelle Entwurf als Kontext** mitgegeben
+  wird – inklusive schneller **Impulse** zum Antippen.
 
   Einträge werden **immer zuerst lokal gespeichert**; die KI-Analyse läuft danach.
+- **Einblicke in der Seitenleiste** – die wichtigsten Zahlen (Streak, Einträge
+  gesamt, Wörter gesamt) stehen dauerhaft und kompakt **unten in der linken
+  Navigationsspalte** – immer sichtbar, ohne zusätzliche Spalte.
 - **Eintrag ansehen & bearbeiten** – jeder Eintrag öffnet eine Detailseite mit
   Text und der vollständigen KI-Analyse; per „Bearbeiten" lassen sich Titel,
   Datum und Text ändern (die Analyse wird danach aktualisiert). Ein Block

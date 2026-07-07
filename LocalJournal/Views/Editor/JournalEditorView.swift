@@ -21,7 +21,6 @@ struct JournalEditorView: View {
     @Query(sort: \JournalPrompt.createdAt, order: .reverse) private var prompts: [JournalPrompt]
     @Query(sort: [SortDescriptor(\EntryTemplate.sortIndex), SortDescriptor(\EntryTemplate.createdAt)])
     private var templates: [EntryTemplate]
-    @Query(sort: \JournalEntry.date, order: .reverse) private var allEntries: [JournalEntry]
     @Query private var settingsList: [AppSettings]
 
     @State private var title = ""
@@ -34,7 +33,6 @@ struct JournalEditorView: View {
     @State private var timer = WritingTimer()
 
     // Panels + tools
-    @State private var showStats = true
     @State private var showChat = false
     @State private var showFormatting = false
     @State private var editor = MarkdownEditingController()
@@ -52,15 +50,6 @@ struct JournalEditorView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            if showStats {
-                EditorStatsPanel(entries: allEntries) {
-                    withAnimation(.snappy) { showStats = false }
-                }
-                .frame(width: 244)
-                .transition(.move(edge: .leading).combined(with: .opacity))
-                Divider()
-            }
-
             centerColumn
 
             if showChat {
@@ -74,14 +63,6 @@ struct JournalEditorView: View {
         }
         .navigationTitle("Neuer Eintrag")
         .toolbar {
-            ToolbarItem(placement: .navigation) {
-                Button {
-                    withAnimation(.snappy) { showStats.toggle() }
-                } label: {
-                    Image(systemName: "sidebar.left")
-                }
-                .help("Einblicke ein-/ausblenden")
-            }
             ToolbarItemGroup(placement: .primaryAction) {
                 Button {
                     withAnimation(.snappy) { showChat.toggle() }

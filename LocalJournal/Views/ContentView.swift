@@ -76,6 +76,11 @@ struct ContentView: View {
                     }
                     .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 240)
                     .navigationTitle("Local Journal")
+                    // The key facts live permanently at the bottom of the existing
+                    // sidebar — small, always visible, never a second column.
+                    .safeAreaInset(edge: .bottom) {
+                        SidebarStatsFooter()
+                    }
                 } detail: {
                     NavigationStack {
                         detail(for: selection ?? .dashboard)
