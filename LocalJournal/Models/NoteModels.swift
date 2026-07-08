@@ -76,6 +76,10 @@ final class NoteThought {
     var heading: String?
     /// Position within the source document.
     var orderIndex: Int
+    /// Block the line belongs to (blank lines / headings advance it). Lines of
+    /// the same block often share one topic, so distillation keeps them together.
+    /// Defaulted for safe migration of thoughts imported before this existed.
+    var paragraphIndex: Int = 0
     /// Set once the distillation pass has looked at this thought (resumability).
     var isDistilled: Bool = false
     /// Packed `[Float]` embedding vector; filled by the (future) semantic pass.
@@ -83,11 +87,12 @@ final class NoteThought {
 
     var document: NoteDocument?
 
-    init(text: String, heading: String?, orderIndex: Int) {
+    init(text: String, heading: String?, orderIndex: Int, paragraphIndex: Int = 0) {
         self.id = UUID()
         self.text = text
         self.heading = heading
         self.orderIndex = orderIndex
+        self.paragraphIndex = paragraphIndex
     }
 }
 

@@ -65,7 +65,8 @@ final class NotesService {
             )
             context.insert(document)
             for (index, thought) in thoughts.enumerated() {
-                let record = NoteThought(text: thought.text, heading: thought.heading, orderIndex: index)
+                let record = NoteThought(text: thought.text, heading: thought.heading,
+                                         orderIndex: index, paragraphIndex: thought.paragraphIndex)
                 record.document = document
                 context.insert(record)
             }
@@ -150,15 +151,22 @@ final class NotesService {
             if stopRequested { break }
 
             let snippets = batch.enumerated().map { index, thought in
-                LLMPromptTemplates.NoteSnippet(index: index + 1, heading: thought.heading, text: thought.text)
+                LLMPromptTemplates.NoteSnippet(index: index + 1,
+                                               heading: thought.heading,
+                                               text: thought.text,
+                                               paragraphIndex: thought.paragraphIndex)
             }
             let prompt = LLMPromptTemplates.distillNotes(batch: snippets, options: options)
 
             if let raw = try? await service.generate(prompt: prompt, json: true, temperature: 0.3) {
                 let extracted = NoteDistillResult.parse(raw).insights
                 for item in extracted {
-                    guard item.index >= 1, item.index <= batch.count else { continue }
-                    let source = batch[item.index - 1]
+                    // An insight may span several consecutive lines of one block.
+                    let sources = item.indices
+                        .filter { $0 >= 1 && $0 <= batch.count }
+                        .sorted()
+                        .map { batch[$0 - 1] }
+                    guard let first = sources.first else { continue }
                     let key = normalize(item.text)
                     guard !item.text.isEmpty, !knownTexts.contains(key) else { continue }
                     knownTexts.insert(key)
@@ -166,9 +174,9 @@ final class NotesService {
                         kind: item.kind,
                         text: item.text,
                         topics: item.topics,
-                        sourceText: source.text,
-                        sourceDocumentName: source.document?.fileName ?? "",
-                        thoughtID: source.id
+                        sourceText: sources.map(\.text).joined(separator: "\n"),
+                        sourceDocumentName: first.document?.fileName ?? "",
+                        thoughtID: first.id
                     ))
                     foundThisRun += 1
                 }
@@ -186,22 +194,62 @@ final class NotesService {
             : "Fertig: \(foundThisRun) neue Erkenntnisse gefunden."
     }
 
+    /// Pack thoughts into batches WITHOUT ever cutting through a paragraph
+    /// (lines of one block often form a single topic — the safety net against
+    /// over-eager line chunking). Only a block that alone exceeds the limits is
+    /// split (long bullet lists, where items are independent anyway).
     private func makeBatches(_ thoughts: [NoteThought]) -> [[NoteThought]] {
+        // 1. Group consecutive thoughts of the same document + block.
+        var groups: [[NoteThought]] = []
+        for thought in thoughts {
+            if let last = groups.last?.last,
+               last.document?.id == thought.document?.id,
+               last.paragraphIndex == thought.paragraphIndex {
+                groups[groups.count - 1].append(thought)
+            } else {
+                groups.append([thought])
+            }
+        }
+
+        func wordCount(_ list: [NoteThought]) -> Int {
+            list.reduce(0) { $0 + $1.text.split(whereSeparator: { $0.isWhitespace }).count }
+        }
+
+        // 2. Pack whole groups into batches; split only oversized groups.
         var batches: [[NoteThought]] = []
         var current: [NoteThought] = []
         var words = 0
-        for thought in thoughts {
-            let count = thought.text.split(whereSeparator: { $0.isWhitespace }).count
-            if !current.isEmpty,
-               current.count >= maxThoughtsPerBatch || words + count > maxWordsPerBatch {
-                batches.append(current)
-                current = []
-                words = 0
-            }
-            current.append(thought)
-            words += count
+
+        func flush() {
+            if !current.isEmpty { batches.append(current); current = []; words = 0 }
         }
-        if !current.isEmpty { batches.append(current) }
+
+        for group in groups {
+            let groupWords = wordCount(group)
+            if group.count > maxThoughtsPerBatch || groupWords > maxWordsPerBatch {
+                flush()
+                var piece: [NoteThought] = []
+                var pieceWords = 0
+                for thought in group {
+                    let count = thought.text.split(whereSeparator: { $0.isWhitespace }).count
+                    if !piece.isEmpty,
+                       piece.count >= maxThoughtsPerBatch || pieceWords + count > maxWordsPerBatch {
+                        batches.append(piece); piece = []; pieceWords = 0
+                    }
+                    piece.append(thought)
+                    pieceWords += count
+                }
+                if !piece.isEmpty { batches.append(piece) }
+                continue
+            }
+            if !current.isEmpty,
+               current.count + group.count > maxThoughtsPerBatch || words + groupWords > maxWordsPerBatch {
+                flush()
+            }
+            current.append(contentsOf: group)
+            words += groupWords
+        }
+        flush()
         return batches
     }
 
@@ -225,10 +273,11 @@ final class NotesService {
 }
 
 /// Tolerant decoder for `LLMPromptTemplates.distillNotes`:
-/// `{ "insights": [{"index": 3, "kind": "…", "text": "…", "topics": […]}] }`.
+/// `{ "insights": [{"indices": [3, 4], "kind": "…", "text": "…", "topics": […]}] }`
+/// (a single `"index": 3` is tolerated as well).
 struct NoteDistillResult {
     struct Item {
-        var index: Int
+        var indices: [Int]
         var kind: NoteInsightKind
         var text: String
         var topics: [String]
@@ -245,13 +294,18 @@ struct NoteDistillResult {
         }
         var result = NoteDistillResult()
         for entry in list {
-            guard let index = intValue(entry["index"]) else { continue }
+            var indices: [Int] = []
+            if let array = entry["indices"] as? [Any] {
+                indices = array.compactMap { intValue($0) }
+            } else if let single = intValue(entry["index"]) {
+                indices = [single]
+            }
             let text = ((entry["text"] as? String) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !text.isEmpty else { continue }
+            guard !indices.isEmpty, !text.isEmpty else { continue }
             let topics = ((entry["topics"] as? [String]) ?? [])
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .filter { !$0.isEmpty }
-            result.insights.append(Item(index: index,
+            result.insights.append(Item(indices: indices,
                                         kind: kind(from: entry["kind"] as? String),
                                         text: text,
                                         topics: topics))

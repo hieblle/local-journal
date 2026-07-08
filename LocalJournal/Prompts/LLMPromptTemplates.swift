@@ -542,25 +542,44 @@ enum LLMPromptTemplates {
         var index: Int
         var heading: String?
         var text: String
+        var paragraphIndex: Int = 0
     }
 
     /// Distill a batch of raw note **thoughts** (one line ≈ one thought) down to
     /// the few that carry lasting value: recommendations, learnings, principles,
     /// ideas. Most snippets are expected to be noise (daily scribbles, todos,
-    /// appointments) and must simply be skipped.
+    /// appointments) and must simply be skipped. Snippets are rendered grouped by
+    /// their original block (blank line = new block) and an insight may span
+    /// several consecutive snippets of one block — the safety net against
+    /// over-eager line chunking.
     static func distillNotes(batch: [NoteSnippet],
                              options: PromptOptions = .default) -> String {
-        let numbered = batch.map { snippet -> String in
-            let context = snippet.heading.map { " (Kontext: \($0))" } ?? ""
-            return "\(snippet.index).\(context) \(snippet.text)"
-        }.joined(separator: "\n")
+        var lines: [String] = []
+        var lastParagraph: Int? = nil
+        var lastHeading: String? = nil
+        for snippet in batch {
+            // Blank line between blocks so the model sees what belongs together.
+            if let last = lastParagraph, last != snippet.paragraphIndex {
+                lines.append("")
+            }
+            // Print each heading once, when it changes.
+            if let heading = snippet.heading, heading != lastHeading {
+                lines.append("[\(heading)]")
+                lastHeading = heading
+            }
+            lines.append("\(snippet.index). \(snippet.text)")
+            lastParagraph = snippet.paragraphIndex
+        }
+        let numbered = lines.joined(separator: "\n")
 
         return """
         \(systemPreamble(tone: options.tone))
 
         Unten stehen nummerierte Gedanken-Schnipsel aus alten persönlichen \
-        Notizen. Die meisten sind Alltagsrauschen. Finde NUR die Schnipsel, die \
-        etwas dauerhaft Nützliches enthalten:
+        Notizen, gruppiert in Blöcken (Leerzeile = neuer Block; Zeilen in \
+        eckigen Klammern sind Überschriften als Kontext). Zeilen desselben \
+        Blocks gehören oft zum selben Thema. Die meisten Schnipsel sind \
+        Alltagsrauschen. Finde NUR, was dauerhaft Nützliches enthält:
         - "recommendation": eine konkrete Empfehlung / ein Rat an sich selbst
         - "learning": eine Erkenntnis aus einer Erfahrung
         - "principle": ein Grundsatz / Leitsatz
@@ -574,10 +593,15 @@ enum LLMPromptTemplates {
         Gib GENAU dieses JSON zurück (leere Liste, wenn nichts Nützliches dabei ist):
         {
           "insights": [
-            {"index": 3, "kind": "recommendation", "text": "…", "topics": ["…"]}
+            {"indices": [3], "kind": "recommendation", "text": "…", "topics": ["…"]}
           ]
         }
-        "index" ist die Nummer des Schnipsels. Höchstens 1 Eintrag pro Schnipsel.
+        Regeln für "indices":
+        - Nummern der Schnipsel, aus denen die Erkenntnis stammt.
+        - Wenn MEHRERE aufeinanderfolgende Zeilen desselben Blocks zusammen EINEN \
+          Gedanken bilden, fasse sie zu EINER Erkenntnis zusammen und gib alle \
+          Nummern an – erzeuge keine fast gleichen Duplikate.
+        - Jede Nummer höchstens in einem Eintrag.
 
         Schnipsel:
         \(numbered)

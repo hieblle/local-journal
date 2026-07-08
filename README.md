@@ -76,13 +76,17 @@ Netzwerkverbindung geht an deinen lokalen Ollama-Server.
   formuliert nur den Text und ist best-effort – ist Ollama offline, bleiben die
   Kennzahlen trotzdem erhalten und der Text lässt sich später nachziehen.
 - **Notizen** – importiere deine **alten Notizdateien** (txt/md, auch ganze
-  Ordner). Jede Datei wird **zeilen-/absatzweise in „Gedanken" zerlegt** (Daily
-  Notes: fast jede Zeile ein neues Thema; Überschriften werden als Kontext
-  mitgeführt). Die lokale KI **destilliert** daraus in Batches nur das, was
-  bleibenden Wert hat – Empfehlungen, Learnings, Grundsätze, Ideen – jeweils mit
-  Quellstelle. Du **kuratierst einmal** (Behalten/Verwerfen); Behaltenes bildet
-  deine persönliche **Wissensbasis**, der Rohtext bleibt durchsuchbar erhalten.
-  Die Destillation ist pausier- und fortsetzbar und läuft offline-tolerant.
+  Ordner). Jede Datei wird **zeilenweise in „Gedanken" zerlegt** (Daily Notes:
+  fast jede Zeile ein neues Thema; Überschriften werden als Kontext mitgeführt).
+  Als **Sicherheitsnetz gegen zu feines Zerschneiden** merkt sich der Import die
+  **Blockgrenzen** (Leerzeilen): die Destillation sieht Zeilen im Verbund ihres
+  Blocks, Batches schneiden nie durch einen Block, und eine Erkenntnis darf
+  **mehrere zusammengehörige Zeilen umfassen** (Quellstelle = ganzer Span). Die
+  lokale KI **destilliert** in Batches nur das, was bleibenden Wert hat –
+  Empfehlungen, Learnings, Grundsätze, Ideen. Du **kuratierst einmal**
+  (Behalten/Verwerfen); Behaltenes bildet deine persönliche **Wissensbasis**,
+  der Rohtext bleibt zeilenweise durchsuchbar (und wird später zeilenweise
+  eingebettet). Die Destillation ist pausier-/fortsetzbar und offline-tolerant.
   *Nächster Schritt (Roadmap): „Resonanz" – neue Einträge referenzieren
   automatisch passende Erkenntnisse und ähnliche frühere Einträge.*
 - **Markdown-Spiegel** – optional wird jeder Eintrag zusätzlich als **`.md`-Datei**
