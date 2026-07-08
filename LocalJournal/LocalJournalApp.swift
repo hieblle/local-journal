@@ -23,6 +23,9 @@ struct LocalJournalApp: App {
             GuidingPrinciple.self,
             EntryTemplate.self,
             PeriodicReport.self,
+            NoteDocument.self,
+            NoteThought.self,
+            NoteInsight.self,
         ])
         // Persistent, local-only configuration. No CloudKit, no sync.
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)

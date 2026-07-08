@@ -535,6 +535,55 @@ enum LLMPromptTemplates {
         String(format: "%.2f", value)
     }
 
+    // MARK: - Notes distillation
+
+    /// One numbered snippet handed to the distillation prompt.
+    struct NoteSnippet {
+        var index: Int
+        var heading: String?
+        var text: String
+    }
+
+    /// Distill a batch of raw note **thoughts** (one line ≈ one thought) down to
+    /// the few that carry lasting value: recommendations, learnings, principles,
+    /// ideas. Most snippets are expected to be noise (daily scribbles, todos,
+    /// appointments) and must simply be skipped.
+    static func distillNotes(batch: [NoteSnippet],
+                             options: PromptOptions = .default) -> String {
+        let numbered = batch.map { snippet -> String in
+            let context = snippet.heading.map { " (Kontext: \($0))" } ?? ""
+            return "\(snippet.index).\(context) \(snippet.text)"
+        }.joined(separator: "\n")
+
+        return """
+        \(systemPreamble(tone: options.tone))
+
+        Unten stehen nummerierte Gedanken-Schnipsel aus alten persönlichen \
+        Notizen. Die meisten sind Alltagsrauschen. Finde NUR die Schnipsel, die \
+        etwas dauerhaft Nützliches enthalten:
+        - "recommendation": eine konkrete Empfehlung / ein Rat an sich selbst
+        - "learning": eine Erkenntnis aus einer Erfahrung
+        - "principle": ein Grundsatz / Leitsatz
+        - "idea": eine aufgehobene Idee mit bleibendem Wert
+
+        Ignoriere: To-dos, Termine, Einkäufe, Tagesnotizen ohne Erkenntnis, \
+        reine Fakten ohne Bedeutung, Unverständliches. Im Zweifel weglassen. \
+        Formuliere "text" prägnant und eigenständig verständlich um (Deutsch), \
+        ohne den Sinn zu verändern.
+
+        Gib GENAU dieses JSON zurück (leere Liste, wenn nichts Nützliches dabei ist):
+        {
+          "insights": [
+            {"index": 3, "kind": "recommendation", "text": "…", "topics": ["…"]}
+          ]
+        }
+        "index" ist die Nummer des Schnipsels. Höchstens 1 Eintrag pro Schnipsel.
+
+        Schnipsel:
+        \(numbered)
+        """
+    }
+
     // MARK: - Companion chat (free text, not JSON)
 
     /// Conversational prompt for the in-editor "KI-Begleiter". The current draft

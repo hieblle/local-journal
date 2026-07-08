@@ -88,6 +88,14 @@ Trigger→Gefühl-Verbindungen, Glaubenssätzen, Strategien, Learnings und Verä
       deterministische Kennzahlen plus best-effort LLM-Rückblick, automatisch für
       abgeschlossene Zeiträume beim Start und on-demand für den laufenden.
       Nächster Schritt: echter geplanter Hintergrund-Job statt Start-Trigger
+- [ ] **Resonanz** (Notizen-Phase 2): neue Einträge matchen automatisch gegen die
+      destillierte Wissensbasis und frühere Einträge – „Aus deinen Notizen" +
+      „Schon mal erlebt" (mit damaligen Strategien/Learnings) am Eintragsdetail;
+      Top-Treffer zusätzlich als Kontext für den KI-Begleiter
+- [ ] **Semantische Suche** (Notizen-Phase 3): Embeddings über Ollama
+      (`/api/embed`, z. B. `bge-m3`), Vektoren als Blob in SwiftData,
+      Brute-Force-Cosine (bei <10k Vektoren ausreichend – keine Vektor-DB nötig);
+      Fallback bleibt Stichwort-/Themen-Overlap
 - [ ] Strukturierte Ausgaben über Ollama-JSON-Schema statt nur `format: "json"`
 - [ ] Auswahl mehrerer Modelle / Profile (schnell vs. gründlich)
 - [ ] Re-Analyse-Warteschlange mit Fortschrittsanzeige

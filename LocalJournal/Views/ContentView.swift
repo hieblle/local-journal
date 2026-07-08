@@ -10,6 +10,7 @@ enum AppSection: String, CaseIterable, Identifiable {
     case entries
     case prompts
     case insights
+    case notes
     case reports
     case graph
     case analysis
@@ -25,6 +26,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .entries:   return "Einträge"
         case .prompts:   return "Reflexionsfragen"
         case .insights:  return "Einsichten"
+        case .notes:     return "Notizen"
         case .reports:   return "Berichte"
         case .graph:     return "Wissensgraph"
         case .analysis:  return "Analyse"
@@ -40,6 +42,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .entries:   return "book.closed"
         case .prompts:   return "lightbulb"
         case .insights:  return "brain.head.profile"
+        case .notes:     return "note.text"
         case .reports:   return "doc.text.magnifyingglass"
         case .graph:     return "point.3.connected.trianglepath.dotted"
         case .analysis:  return "chart.bar.xaxis"
@@ -153,6 +156,7 @@ struct ContentView: View {
         case .prompts:   PromptLibraryView(onStartWriting: startWriting,
                                            onStartTemplate: beginTemplate)
         case .insights:  InsightsView()
+        case .notes:     NotesView()
         case .reports:   ReportsView(onStartWriting: startWriting)
         case .graph:     KnowledgeGraphView()
         case .analysis:  AnalysisView()

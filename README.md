@@ -75,6 +75,16 @@ Netzwerkverbindung geht an deinen lokalen Ollama-Server.
   Zahlen entstehen deterministisch (`Support/ReportBuilder.swift`); das LLM
   formuliert nur den Text und ist best-effort – ist Ollama offline, bleiben die
   Kennzahlen trotzdem erhalten und der Text lässt sich später nachziehen.
+- **Notizen** – importiere deine **alten Notizdateien** (txt/md, auch ganze
+  Ordner). Jede Datei wird **zeilen-/absatzweise in „Gedanken" zerlegt** (Daily
+  Notes: fast jede Zeile ein neues Thema; Überschriften werden als Kontext
+  mitgeführt). Die lokale KI **destilliert** daraus in Batches nur das, was
+  bleibenden Wert hat – Empfehlungen, Learnings, Grundsätze, Ideen – jeweils mit
+  Quellstelle. Du **kuratierst einmal** (Behalten/Verwerfen); Behaltenes bildet
+  deine persönliche **Wissensbasis**, der Rohtext bleibt durchsuchbar erhalten.
+  Die Destillation ist pausier- und fortsetzbar und läuft offline-tolerant.
+  *Nächster Schritt (Roadmap): „Resonanz" – neue Einträge referenzieren
+  automatisch passende Erkenntnisse und ähnliche frühere Einträge.*
 - **Markdown-Spiegel** – optional wird jeder Eintrag zusätzlich als **`.md`-Datei**
   in einem selbst gewählten Ordner gespeichert (z. B. ein Obsidian-Vault): mit
   YAML-Front-Matter (Datum, Stimmung, Themen/Personen/Gefühle), Zusammenfassung
