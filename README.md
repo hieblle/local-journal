@@ -87,8 +87,17 @@ Netzwerkverbindung geht an deinen lokalen Ollama-Server.
   (Behalten/Verwerfen); Behaltenes bildet deine persönliche **Wissensbasis**,
   der Rohtext bleibt zeilenweise durchsuchbar (und wird später zeilenweise
   eingebettet). Die Destillation ist pausier-/fortsetzbar und offline-tolerant.
-  *Nächster Schritt (Roadmap): „Resonanz" – neue Einträge referenzieren
-  automatisch passende Erkenntnisse und ähnliche frühere Einträge.*
+- **Resonanz** – jeder Eintrag zeigt auf seiner Detailseite automatisch, was aus
+  deinem alten Wissen gerade relevant ist: **„Aus deinen Notizen"** (die
+  passendsten behaltenen Erkenntnisse) und **„Schon mal erlebt"** (frühere
+  Einträge mit ähnlicher Situation, inkl. **„Damals half dir:"** aus deren
+  Strategien/Learnings, mit Sprung zum Eintrag). Das Matching ist bewusst
+  **deterministisch und erklärbar** – Chips zeigen die gemeinsamen Signale
+  (Trigger/Muster wiegen mehr als Themen), es wird live berechnet (verbessert
+  sich automatisch mit jeder behaltenen Erkenntnis) und unter einem
+  Mindest-Score erscheint nichts. Der **KI-Begleiter** im Editor bekommt die
+  Top-Erkenntnisse zum aktuellen Entwurf als Kontext – abschaltbar über den
+  Schalter **„Wissensbasis"** im Chat-Panel.
 - **Markdown-Spiegel** – optional wird jeder Eintrag zusätzlich als **`.md`-Datei**
   in einem selbst gewählten Ordner gespeichert (z. B. ein Obsidian-Vault): mit
   YAML-Front-Matter (Datum, Stimmung, Themen/Personen/Gefühle), Zusammenfassung

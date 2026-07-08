@@ -59,6 +59,7 @@ struct EntryDetailView: View {
                     } else {
                         analysisPlaceholder
                     }
+                    ResonanceCard(entry: entry)
                     reflectionCard
                 }
             }

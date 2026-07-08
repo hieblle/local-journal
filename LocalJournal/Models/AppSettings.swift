@@ -54,6 +54,10 @@ final class AppSettings {
     /// Overrides the guidance for the weekly / monthly report narrative.
     var customReportGuidance: String = ""
 
+    /// Editor companion chat: include matching insights from the curated
+    /// knowledge base (Notizen) as context. Toggleable in the chat panel.
+    var companionUsesKnowledge: Bool = true
+
     init(
         id: UUID = UUID(),
         ollamaBaseURL: String = AppSettings.defaultBaseURL,

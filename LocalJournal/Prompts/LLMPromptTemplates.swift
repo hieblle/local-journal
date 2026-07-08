@@ -618,12 +618,21 @@ enum LLMPromptTemplates {
                               entryText: String,
                               history: [ChatTurn],
                               question: String,
+                              knowledge: [String] = [],
                               options: PromptOptions = .default) -> String {
         let tone = resolve(options.tone, or: defaultTone)
         let convo = history.isEmpty ? "" :
             "Bisheriges Gespräch:\n"
             + history.map { "\($0.isUser ? "Ich" : "Begleiter"): \($0.text)" }.joined(separator: "\n")
             + "\n\n"
+        let knowledgeBlock = knowledge.isEmpty ? "" : """
+        Wissen aus früheren Notizen der Person (nur einbeziehen, wenn es wirklich \
+        zur Frage passt; dann als ihr eigenes Wissen ansprechen, z. B. "Du hast \
+        dir mal notiert …"):
+        \(knowledge.map { "- \($0)" }.joined(separator: "\n"))
+
+
+        """
         return """
         \(tone)
 
@@ -633,7 +642,7 @@ enum LLMPromptTemplates {
         Wunsch zusammen. Antworte kurz (1-4 Sätze), warm und nicht diagnostisch, \
         auf Deutsch. Nur normaler Fließtext – kein JSON, keine Aufzählungszeichen.
 
-        Aktueller Eintrag (Entwurf):
+        \(knowledgeBlock)Aktueller Eintrag (Entwurf):
         Titel: \(entryTitle.isEmpty ? "(kein Titel)" : entryTitle)
         \"\"\"
         \(entryText.isEmpty ? "(noch kein Text)" : entryText)

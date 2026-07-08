@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 /// One turn of the companion conversation, in a shape the prompt template can use.
 struct ChatTurn {
@@ -30,7 +31,8 @@ final class CompanionChat {
         "Was übersehe ich hier vielleicht?"
     ]
 
-    func send(_ raw: String, entryTitle: String, entryText: String, settings: AppSettings) async {
+    func send(_ raw: String, entryTitle: String, entryText: String,
+              knowledge: [String] = [], settings: AppSettings) async {
         let question = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !question.isEmpty, !isThinking else { return }
 
@@ -52,6 +54,7 @@ final class CompanionChat {
             entryText: entryText,
             history: Array(history),
             question: question,
+            knowledge: knowledge,
             options: LLMPromptTemplates.PromptOptions(settings)
         )
         do {
@@ -70,6 +73,18 @@ struct CompanionChatPanel: View {
     let entryText: String
     let settings: AppSettings
     var onClose: () -> Void = {}
+
+    @Environment(\.modelContext) private var context
+    @Query private var allInsights: [NoteInsight]
+
+    /// Knowledge-base context for the next message (top insights matching the
+    /// current draft), if the toggle is on and anything is kept.
+    private func knowledgeContext(extra question: String) -> [String] {
+        guard settings.companionUsesKnowledge else { return [] }
+        return ResonanceEngine
+            .relevantInsights(forDraft: entryText + " " + question, title: entryTitle, from: allInsights)
+            .map { "\($0.kind.label): \($0.text)" }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -109,6 +124,21 @@ struct CompanionChatPanel: View {
             Text("KI-Begleiter")
                 .font(.callout.weight(.semibold))
             Spacer()
+
+            // Feed matching insights from the curated Notizen knowledge base
+            // into the conversation (see ResonanceEngine).
+            Toggle(isOn: Binding(
+                get: { settings.companionUsesKnowledge },
+                set: { settings.companionUsesKnowledge = $0; try? context.save() }
+            )) {
+                Text("Wissensbasis")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .toggleStyle(.switch)
+            .controlSize(.mini)
+            .help("Passende Erkenntnisse aus deinen Notizen als Kontext mitgeben")
+
             Button {
                 onClose()
             } label: {
@@ -128,7 +158,10 @@ struct CompanionChatPanel: View {
             SectionLabel("Impulse")
             ForEach(chat.impulses, id: \.self) { impulse in
                 Button {
-                    Task { await chat.send(impulse, entryTitle: entryTitle, entryText: entryText, settings: settings) }
+                    Task {
+                        await chat.send(impulse, entryTitle: entryTitle, entryText: entryText,
+                                        knowledge: knowledgeContext(extra: impulse), settings: settings)
+                    }
                 } label: {
                     Text(impulse)
                         .font(.callout)
@@ -224,6 +257,10 @@ struct CompanionChatPanel: View {
 
     private func sendDraft() {
         guard canSend else { return }
-        Task { await chat.send(chat.draft, entryTitle: entryTitle, entryText: entryText, settings: settings) }
+        let question = chat.draft
+        Task {
+            await chat.send(question, entryTitle: entryTitle, entryText: entryText,
+                            knowledge: knowledgeContext(extra: question), settings: settings)
+        }
     }
 }
