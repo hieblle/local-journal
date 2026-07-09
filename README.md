@@ -127,6 +127,9 @@ Netzwerkverbindung geht an deinen lokalen Ollama-Server.
   Analyse-Pipeline stabil bleibt; ein leeres Feld nutzt den Standard.
 
 Geplante Features (u. a. die **Suche**) stehen in [`Roadmap.md`](./Roadmap.md).
+Die **vollständige Funktions- und Datenmodell-Referenz** (alle Features, Abläufe,
+Prompts, Speicherorte – als Gedächtnisstütze) liegt in
+[`docs/funktionsweise.md`](./docs/funktionsweise.md).
 
 ## Voraussetzungen
 
